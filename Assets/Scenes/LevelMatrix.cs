@@ -308,7 +308,9 @@ public enum GeoType
     TLSlope = 4,
     TRSlope = 5,
     Platform = 6,
+    Entrance = 7,
 
+    GlassWall = 9
 }
 
 public enum FeatureType

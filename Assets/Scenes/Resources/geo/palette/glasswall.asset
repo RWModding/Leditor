@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 13312, guid: 0000000000000000e000000000000000, type: 0}
-  m_Name: platform
+  m_Name: glasswall
   m_EditorClassIdentifier: 
-  m_Sprite: {fileID: -1175256420, guid: f278d2f5df74d7242b3f74b95bd2e1a2, type: 3}
+  m_Sprite: {fileID: 1831134535, guid: b9e534818f02b6a48b550ecb8b56f43e, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Transform:
     e00: 1
