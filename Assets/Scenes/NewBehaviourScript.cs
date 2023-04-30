@@ -2,27 +2,56 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using Unity.VisualScripting;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using static FeatureType;
 
 public class NewBehaviourScript : MonoBehaviour
 {
     private readonly Dictionary<GeoType, Tile> GeoTiles = new();
     private readonly Dictionary<FeatureType, Sprite> FeatureSprites = new();
     private readonly List<Tilemap> GeoLayers = new();
+    private readonly List<GameObject> FeatureLayers = new();
+    private readonly Color[] LayerColors = new Color[3] { new Color(0, 0, 0, 0.5f), new Color(0, 1, 0, 0.333f), new Color(1, 0, 0, 0.333f) };
 
-    private Tilemap tileMap;
+    private GameObject SpecialFeatures;
+    private GameObject FeaturePrefab;
+    private GridLines gridLines;
+    private new Camera camera;
+    private CameraControls cameraControls;
 
     private void Awake()
     {
+        camera = Camera.main;
+        cameraControls = camera.gameObject.GetComponent<CameraControls>();
+
         GeoLayers.AddRange(GetComponentsInChildren<Tilemap>());
+        for (var i  = 0; i < GeoLayers.Count; i++)
+        {
+            GeoLayers[i].color = LayerColors[i];
+        }
 
         LoadGeoTiles();
         LoadFeatureSprites();
+        LoadFeatureObjects();
     }
 
     #region Asset loading
+    private void LoadFeatureObjects()
+    {
+        for (var i = 1; i <= 3; i++)
+        {
+            FeatureLayers.Add(transform.Find("FeaturesLayer" + i).gameObject);
+        }
+        SpecialFeatures = transform.Find("SpecialFeatures").gameObject;
+
+        FeaturePrefab = Resources.Load<GameObject>("geo/feature");
+    }
+
     private void LoadGeoTiles()
     {
         GeoTiles[GeoType.Air] = null;
@@ -75,12 +104,26 @@ public class NewBehaviourScript : MonoBehaviour
     }
     #endregion
 
-    // Start is called before the first frame update
     void Start()
     {
-        var matrix = new LevelMatrix("[[[[9, []], [0, []], [0, []]], [[1, []], [0, []], [0, []]], [[0, []], [1, []], [0, []]], [[0, []], [0, []], [1, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, [11]]], [[0, []], [0, [2]], [9, []]], [[0, []], [0, []], [0, []]], [[0, [21]], [0, []], [0, []]]], [[[1, [11]], [0, []], [0, []]], [[1, []], [1, []], [1, []]], [[1, []], [1, []], [0, []]], [[1, []], [0, []], [1, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, [10]]], [[0, []], [0, [2]], [0, [2]]], [[0, []], [0, []], [0, []]], [[0, [19]], [0, []], [0, []]]], [[[0, []], [1, []], [0, []]], [[1, []], [1, []], [0, []]], [[1, []], [1, []], [1, []]], [[0, []], [1, []], [1, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, [9]]], [[0, []], [0, [2]], [0, [6, 12, 7, 5, 4, 1]]], [[0, []], [0, []], [0, []]], [[0, [13]], [0, []], [0, []]]], [[[0, []], [0, []], [1, []]], [[1, []], [0, []], [1, []]], [[0, []], [1, []], [1, []]], [[1, []], [1, []], [1, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, [12]]], [[0, [9]], [0, []], [0, []]], [[0, [20]], [0, []], [0, []]]], [[[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, [10, 9, 2]], [0, [21, 19, 13, 20, 18, 3]]], [[0, [10]], [0, []], [0, []]], [[0, [12]], [0, []], [0, []]]], [[[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, [18]], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, [11]], [0, []]], [[0, [11]], [0, []], [0, []]], [[0, [3]], [0, []], [0, []]]], [[[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [9, []], [0, []]], [[0, [1, 5]], [0, []], [0, []]], [[0, [18]], [0, []], [0, []]]], [[[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[1, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[1, []], [0, []], [0, []]], [[0, []], [0, [2]], [0, []]], [[0, [2, 5]], [0, [1, 2]], [0, []]], [[0, [6]], [0, []], [0, []]]], [[[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[9, []], [0, []], [0, []]], [[0, []], [0, [5]], [0, []]], [[1, []], [0, [12, 6, 7, 5, 4, 1]], [0, []]], [[9, []], [0, [1, 2]], [0, []]], [[0, [7]], [0, []], [0, []]]], [[[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, []], [0, []], [0, []]], [[0, [21, 19, 13, 20, 18, 3, 12, 5, 6]], [0, []], [0, []]], [[0, []], [0, [21, 19, 13, 20, 18, 3]], [0, []]], [[0, [4]], [0, []], [0, []]], [[0, [5]], [0, []], [0, []]]]]");
+        var matrix = new LevelMatrix(File.ReadAllLines("E:\\Rain World leditor\\LevelEditorProjects\\World\\SI\\SI_D05.txt")[0].Trim());
 
+        LoadLevel(matrix);
 
+        gridLines = camera.AddComponent<GridLines>();
+        gridLines.start = new Vector2(transform.position.x, transform.position.y);
+        gridLines.size = new Vector2(matrix.Width, matrix.Height);
+        gridLines.transformMatrix = transform.localToWorldMatrix;
+    }
+
+    private void OnDestroy()
+    {
+        Destroy(gridLines);
+    }
+
+    #region Level loading
+    private void LoadLevel(LevelMatrix matrix)
+    {
         for (var z = 0; z < GeoLayers.Count; z++)
         {
             var positions = new Vector3Int[matrix.Width * matrix.Height];
@@ -91,17 +134,30 @@ public class NewBehaviourScript : MonoBehaviour
                 for (var y = 0; y < matrix.Height; y++)
                 {
                     var i = x * matrix.Height + y;
+                    var cellLayer = matrix.columns[x].cells[y].layers[z];
 
                     positions[i] = new(x, -y);
-                    tiles[i] = GeoTiles[matrix.columns[x].cells[y].layers[z].geoType];
+                    tiles[i] = GeoTiles[cellLayer.geoType];
+
+                    foreach (var feature in cellLayer.featureType)
+                    {
+                        var isSpecial = feature != crack && feature != vertbeam && feature != horbeam && feature != hive;
+                        var featureObj = Instantiate(FeaturePrefab, new Vector3(x, -y), Quaternion.identity, isSpecial ? SpecialFeatures.transform : FeatureLayers[z].transform);
+                        var featureSprite = featureObj.GetComponent<SpriteRenderer>();
+                        featureSprite.sprite = FeatureSprites[feature];
+                        featureSprite.color = isSpecial ? Color.white : LayerColors[z];
+                        featureObj.name = $"FL{z}_{x}_{y}";
+                    }
                 }
             }
 
             GeoLayers[z].SetTiles(positions, tiles);
         }
-    }
 
-    // Update is called once per frame
+        cameraControls.SetContraints(new Vector2(-1, -(matrix.Height + 1)), new Vector2(matrix.Width + 1, 1));
+    }
+    #endregion
+
     void Update()
     {
         
