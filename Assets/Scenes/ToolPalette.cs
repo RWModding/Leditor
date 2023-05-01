@@ -23,7 +23,7 @@ public class ToolPalette : MonoBehaviour
 
     private GameObject ButtonPrefab;
 
-    private Camera camera;
+    private new Camera camera;
 
     private void Awake()
     {
@@ -39,14 +39,28 @@ public class ToolPalette : MonoBehaviour
             new SimpleGridTool("Air", geoType: Air),
             new SimpleGridTool("Slope", geoType: BLSlope),
             new SimpleGridTool("Platform", geoType: Platform),
+            
             new SimpleGridTool("Hor. Beam", featureType: horbeam),
-            new SimpleGridTool("Ver. Beam", featureType: horbeam),
+            new SimpleGridTool("Ver. Beam", featureType: vertbeam),
             new SimpleGridTool("Rock", featureType: rock),
             new SimpleGridTool("Spear", featureType: spear),
+            
             new SimpleGridTool("ShrtCt Entrance", featureType: shortcutentrance),
             new SimpleGridTool("ShrtCt Dot", featureType: shortcutdot),
             new SimpleGridTool("Enemy Den", featureType: dragonDen),
             new SimpleGridTool("Entrance", featureType: entrance),
+            
+            new SimpleGridTool("Wack Hole", featureType: WHAMH),
+            new SimpleGridTool("Scav Hole", featureType: scavengerHole),
+            new SimpleGridTool("Garb Hole", featureType: garbageHole),
+            new SimpleGridTool("Waterf", featureType: waterfall),
+
+            new SimpleGridTool("Hive", featureType: hive),
+            new SimpleGridTool("Worm Grass", featureType: wormGrass),
+            new SimpleGridTool("Forbid Bats", featureType: forbidBats),
+            new SimpleGridTool("Glass Wall", geoType: GlassWall),
+
+            new SimpleGridTool("Crack", featureType: crack),
         };
 
 
@@ -54,7 +68,8 @@ public class ToolPalette : MonoBehaviour
         var width = rect.rect.width;
         var height = rect.rect.height;
 
-        var rows = Tools.Count / Columns;
+        var rows = Mathf.Ceil((float)Tools.Count / Columns);
+
         var backgroundHeight = Spacing + (rows * Spacing) + (rows * height) + Spacing;
         var backgroundWidth = Spacing + (Columns * Spacing) + (Columns * width) + Spacing;
 
@@ -101,11 +116,24 @@ public class ToolPalette : MonoBehaviour
         
     }
 
+    private Vector3 lastClickPos;
+    private bool clickHeld;
+    
     void Update()
     {
         if (Input.GetMouseButton(0))
         {
-            SelectedTool.OnClick(camera.ScreenToWorldPoint(Input.mousePosition));
+            var clickPos = camera.ScreenToWorldPoint(Input.mousePosition);
+            if (!clickHeld || Vector2Int.CeilToInt(clickPos) != Vector2Int.CeilToInt(lastClickPos))
+            {
+                SelectedTool.OnClick(clickPos);
+                lastClickPos = clickPos;
+                clickHeld = true;
+            }
+        }
+        else
+        {
+            clickHeld = false;
         }
     }
 }

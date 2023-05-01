@@ -16,12 +16,18 @@ public class GeoEditor : MonoBehaviour, IGridEditor
     private readonly Dictionary<Tile, GeoType> GeoForTile = new();
     private readonly Dictionary<FeatureType, Sprite> FeatureSprites = new();
     private readonly List<Tilemap> GeoLayers = new();
-    private readonly List<GameObject> FeatureLayers = new();
+    private readonly List<GameObject> FeatureLayerObjs = new();
     private readonly Color[] LayerColors = new Color[3] { new Color(0, 0, 0, 0.5f), new Color(0, 1, 0, 0.333f), new Color(1, 0, 0, 0.333f) };
+
+    //-- Layer, X, Y
+    private readonly Dictionary<(int, int, int), List<FeatureBundle>> Features = new();
+
+    //-- X, Y
+    private readonly Dictionary<(int, int), List<FeatureBundle>> SpecialFeatures = new();
 
     private LevelMatrix CurrentLevelMatrix;
 
-    private GameObject SpecialFeatures;
+    private GameObject SpecialFeaturesObj;
     private GameObject FeaturePrefab;
     private GridLines gridLines;
     private new Camera camera;
@@ -33,7 +39,7 @@ public class GeoEditor : MonoBehaviour, IGridEditor
         cameraControls = camera.gameObject.GetComponent<CameraControls>();
 
         GeoLayers.AddRange(GetComponentsInChildren<Tilemap>());
-        for (var i  = 0; i < GeoLayers.Count; i++)
+        for (var i = 0; i < GeoLayers.Count; i++)
         {
             GeoLayers[i].color = LayerColors[i];
         }
@@ -48,9 +54,9 @@ public class GeoEditor : MonoBehaviour, IGridEditor
     {
         for (var i = 1; i <= 3; i++)
         {
-            FeatureLayers.Add(transform.Find("FeaturesLayer" + i).gameObject);
+            FeatureLayerObjs.Add(transform.Find("FeaturesLayer" + i).gameObject);
         }
-        SpecialFeatures = transform.Find("SpecialFeatures").gameObject;
+        SpecialFeaturesObj = transform.Find("SpecialFeatures").gameObject;
 
         FeaturePrefab = Resources.Load<GameObject>("geo/feature");
     }
@@ -153,14 +159,26 @@ public class GeoEditor : MonoBehaviour, IGridEditor
                     positions[i] = new(x, -y);
                     tiles[i] = GeoTiles[cellLayer.geoType];
 
+                    Features.Add((z, x, y), new());
+                    SpecialFeatures.TryAdd((x, y), new());
+
                     foreach (var feature in cellLayer.featureType)
                     {
                         var isSpecial = LevelMatrix.IsFeatureSpecial(feature);
-                        var featureObj = Instantiate(FeaturePrefab, new Vector3(x, -y), Quaternion.identity, isSpecial ? SpecialFeatures.transform : FeatureLayers[z].transform);
+                        var featureObj = Instantiate(FeaturePrefab, new Vector3(x, -y), Quaternion.identity, isSpecial ? SpecialFeaturesObj.transform : FeatureLayerObjs[z].transform);
                         var featureSprite = featureObj.GetComponent<SpriteRenderer>();
                         featureSprite.sprite = FeatureSprites[feature];
                         featureSprite.color = isSpecial ? Color.white : LayerColors[z];
                         featureObj.name = $"FL{z}_{x}_{y}";
+
+                        if (isSpecial)
+                        {
+                            SpecialFeatures[(x, y)].Add(new (feature, featureObj));
+                        }
+                        else
+                        {
+                            Features[(z, x, y)].Add(new(feature, featureObj));
+                        }
                     }
                 }
             }
@@ -233,11 +251,32 @@ public class GeoEditor : MonoBehaviour, IGridEditor
                 return false;
             }
 
-            layer.SetTile(pos, GeoTiles[(GeoType) obj]);
+            layer.SetTile(pos, GeoTiles[(GeoType)obj]);
             return true;
         }
         else if (typeof(T) == typeof(FeatureType))
         {
+            var feature = (FeatureType)obj;
+            var isSpecial = LevelMatrix.IsFeatureSpecial(feature);
+
+            var featureList = isSpecial ? SpecialFeatures[(pos.x, -pos.y)] : Features[(SelectedLayer, pos.x, -pos.y)];
+            var sameFeature = featureList.FirstOrDefault(x => x.feature == feature);
+            if (sameFeature == null)
+            {
+                var featureObj = Instantiate(FeaturePrefab, new Vector3(pos.x, pos.y), Quaternion.identity, isSpecial ? SpecialFeaturesObj.transform : FeatureLayerObjs[SelectedLayer].transform);
+                var featureSprite = featureObj.GetComponent<SpriteRenderer>();
+                featureSprite.sprite = FeatureSprites[feature];
+                featureSprite.color = isSpecial ? Color.white : LayerColors[SelectedLayer];
+                featureObj.name = $"FL{SelectedLayer}_{pos.x}_{-pos.y}";
+
+                featureList.Add(new(feature, featureObj));
+            }
+            else
+            {
+                Destroy(sameFeature.gameObject);
+                featureList.Remove(sameFeature);
+            }
+
             return true;
         }
         else
@@ -268,5 +307,16 @@ public class GeoEditor : MonoBehaviour, IGridEditor
     public static bool IsSlope(GeoType geo)
     {
         return geo >= GeoType.BLSlope && geo <= GeoType.TRSlope;
+    }
+
+    public class FeatureBundle {
+        public readonly FeatureType feature;
+        public readonly GameObject gameObject;
+
+        public FeatureBundle(FeatureType feature, GameObject gameObject)
+        {
+            this.feature = feature;
+            this.gameObject = gameObject;
+        }
     }
 }
