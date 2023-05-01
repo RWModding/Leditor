@@ -2,6 +2,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 /// <summary>
 /// A level's geomtry information.
@@ -176,6 +177,11 @@ public class LevelMatrix
         }
         res += "]";
         return res;
+    }
+
+    public static bool IsFeatureSpecial(FeatureType feature)
+    {
+        return feature != FeatureType.crack && feature != FeatureType.vertbeam && feature != FeatureType.horbeam && feature != FeatureType.hive;
     }
 }
 
