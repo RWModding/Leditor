@@ -5,6 +5,7 @@ using System.Linq;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using static FeatureType;
 using static GeoType;
@@ -123,12 +124,18 @@ public class ToolPalette : MonoBehaviour
     {
         if (Input.GetMouseButton(0))
         {
-            var clickPos = camera.ScreenToWorldPoint(Input.mousePosition);
-            if (!clickHeld || Vector2Int.CeilToInt(clickPos) != Vector2Int.CeilToInt(lastClickPos))
+            var mousePos = Input.mousePosition;
+            var worldPos = camera.ScreenToWorldPoint(mousePos);
+            if (!clickHeld || Vector2Int.CeilToInt(worldPos) != Vector2Int.CeilToInt(lastClickPos))
             {
-                SelectedTool.OnClick(clickPos);
-                lastClickPos = clickPos;
-                clickHeld = true;
+
+                //-- Ignoring clicks over UI elements
+                if (!EventSystem.current.IsPointerOverGameObject())
+                {
+                    SelectedTool.OnClick(worldPos);
+                    lastClickPos = worldPos;
+                    clickHeld = true;
+                }
             }
         }
         else

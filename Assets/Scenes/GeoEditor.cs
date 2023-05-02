@@ -165,7 +165,7 @@ public class GeoEditor : MonoBehaviour, IGridEditor
                     foreach (var feature in cellLayer.featureType)
                     {
                         var isSpecial = LevelMatrix.IsFeatureSpecial(feature);
-                        var featureObj = Instantiate(FeaturePrefab, new Vector3(x, -y), Quaternion.identity, isSpecial ? SpecialFeaturesObj.transform : FeatureLayerObjs[z].transform);
+                        var featureObj = Instantiate(FeaturePrefab, new Vector3(x, -y, isSpecial ? -1 : 0), Quaternion.identity, isSpecial ? SpecialFeaturesObj.transform : FeatureLayerObjs[z].transform);
                         var featureSprite = featureObj.GetComponent<SpriteRenderer>();
                         featureSprite.sprite = FeatureSprites[feature];
                         featureSprite.color = isSpecial ? Color.white : LayerColors[z];
@@ -263,7 +263,7 @@ public class GeoEditor : MonoBehaviour, IGridEditor
             var sameFeature = featureList.FirstOrDefault(x => x.feature == feature);
             if (sameFeature == null)
             {
-                var featureObj = Instantiate(FeaturePrefab, new Vector3(pos.x, pos.y), Quaternion.identity, isSpecial ? SpecialFeaturesObj.transform : FeatureLayerObjs[SelectedLayer].transform);
+                var featureObj = Instantiate(FeaturePrefab, new Vector3(pos.x, pos.y, isSpecial ? -1 : 0), Quaternion.identity, isSpecial ? SpecialFeaturesObj.transform : FeatureLayerObjs[SelectedLayer].transform);
                 var featureSprite = featureObj.GetComponent<SpriteRenderer>();
                 featureSprite.sprite = FeatureSprites[feature];
                 featureSprite.color = isSpecial ? Color.white : LayerColors[SelectedLayer];
