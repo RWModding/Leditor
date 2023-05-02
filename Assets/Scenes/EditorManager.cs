@@ -96,6 +96,8 @@ public class EditorManager : MonoBehaviour
             tab.GameObject.transform.localPosition = new Vector3(i * 100, 0);
         }
     }
+
+    //-- TODO: Ask for confirmation
     public void CloseTab(EditorTab tab)
     {
         if (CurrentEditor == tab.Editor)
@@ -118,26 +120,7 @@ public class EditorManager : MonoBehaviour
         {
             if (otherTab != tab) {
                 otherTab.EditorRoot.SetActive(false);
-                //StartCoroutine(SuperDeactivateObject(otherTab.EditorRoot));
             }
-        }
-    }
-
-    public IEnumerator SuperDeactivateObject(GameObject obj)
-    {
-        var falseFrames = 0;
-        while (falseFrames < 10)
-        {
-            if (obj.activeInHierarchy)
-            {
-                obj.SetActive(false);
-                falseFrames = 0;
-            }
-            else
-            {
-                falseFrames++;
-            }
-            yield return null;
         }
     }
 
