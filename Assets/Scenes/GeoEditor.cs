@@ -25,8 +25,10 @@ public class GeoEditor : MonoBehaviour, IGridEditor
     //-- X, Y
     private readonly Dictionary<(int, int), List<FeatureBundle>> SpecialFeatures = new();
 
-    private LevelMatrix CurrentLevelMatrix;
+    public LevelMatrix CurrentLevelMatrix;
+    public EditorFile LoadedFile;
 
+    public GameObject RootObj;
     private GameObject SpecialFeaturesObj;
     private GameObject FeaturePrefab;
     private GridLines gridLines;
@@ -37,6 +39,7 @@ public class GeoEditor : MonoBehaviour, IGridEditor
     {
         camera = Camera.main;
         cameraControls = camera.gameObject.GetComponent<CameraControls>();
+        RootObj = gameObject.scene.GetRootGameObjects().First();
 
         GeoLayers.AddRange(GetComponentsInChildren<Tilemap>());
         for (var i = 0; i < GeoLayers.Count; i++)
@@ -126,14 +129,14 @@ public class GeoEditor : MonoBehaviour, IGridEditor
         //-- TODO: Placeholder... should be replaced when a proper manager is implemented
         EditorManager.Instance.CurrentEditor = this;
 
-        CurrentLevelMatrix = new LevelMatrix(File.ReadAllLines("E:\\Rain World leditor\\LevelEditorProjects\\World\\SI\\SI_D05.txt")[0].Trim());
+        LoadedFile = EditorManager.FileToLoad;
+        EditorManager.FileToLoad = null;
+
+        CurrentLevelMatrix = LoadedFile.Geometry;
 
         LoadLevel(CurrentLevelMatrix);
 
-        gridLines = camera.AddComponent<GridLines>();
-        gridLines.start = new Vector2(transform.position.x, transform.position.y);
-        gridLines.size = new Vector2(CurrentLevelMatrix.Width, CurrentLevelMatrix.Height);
-        gridLines.transformMatrix = transform.localToWorldMatrix;
+        EditorManager.Instance.OnEditorLoaded(this);
     }
 
     private void OnDestroy()
