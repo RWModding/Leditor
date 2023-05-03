@@ -58,9 +58,6 @@ public class ToolPalette : MonoBehaviour
 
             new SimpleGridTool("Hive", featureType: hive),
             new SimpleGridTool("Worm Grass", featureType: wormGrass),
-            new SimpleGridTool("Forbid Bats", featureType: forbidBats),
-            new SimpleGridTool("Glass Wall", geoType: GlassWall),
-
             new SimpleGridTool("Crack", featureType: crack),
         };
 

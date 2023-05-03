@@ -31,14 +31,11 @@ public class GeoEditor : MonoBehaviour, IGridEditor
     public GameObject RootObj;
     private GameObject SpecialFeaturesObj;
     private GameObject FeaturePrefab;
-    private GridLines gridLines;
     private new Camera camera;
-    private CameraControls cameraControls;
 
     private void Awake()
     {
         camera = Camera.main;
-        cameraControls = camera.gameObject.GetComponent<CameraControls>();
         RootObj = gameObject.scene.GetRootGameObjects().First();
 
         GeoLayers.AddRange(GetComponentsInChildren<Tilemap>());
@@ -134,19 +131,15 @@ public class GeoEditor : MonoBehaviour, IGridEditor
 
         CurrentLevelMatrix = LoadedFile.Geometry;
 
-        LoadLevel(CurrentLevelMatrix);
-
+        LoadLevel();
         EditorManager.Instance.OnEditorLoaded(this);
     }
 
-    private void OnDestroy()
-    {
-        Destroy(gridLines);
-    }
-
     #region Level loading
-    private void LoadLevel(LevelMatrix matrix)
+    private void LoadLevel()
     {
+        var matrix = CurrentLevelMatrix;
+
         for (var z = 0; z < GeoLayers.Count; z++)
         {
             var positions = new Vector3Int[matrix.Width * matrix.Height];
@@ -188,8 +181,6 @@ public class GeoEditor : MonoBehaviour, IGridEditor
 
             GeoLayers[z].SetTiles(positions, tiles);
         }
-
-        cameraControls.SetContraints(new Vector2(-1, -(matrix.Height + 1)), new Vector2(matrix.Width + 1, 1));
     }
     #endregion
 
@@ -210,7 +201,7 @@ public class GeoEditor : MonoBehaviour, IGridEditor
 
     public bool TryPlace<T>(int obj, Vector3Int pos) where T : Enum
     {
-        if (pos.x < 0 || pos.x > CurrentLevelMatrix.Width || pos.y > 0 || pos.y < -CurrentLevelMatrix.Height)
+        if (pos.x < 0 || pos.x > CurrentLevelMatrix.Width - 1 || pos.y > 0 || pos.y < -CurrentLevelMatrix.Height + 1)
         {
             return false;
         }
@@ -232,29 +223,34 @@ public class GeoEditor : MonoBehaviour, IGridEditor
 
                 if (down == GeoType.Solid && left == GeoType.Solid && up != GeoType.Solid && right != GeoType.Solid)
                 {
-                    layer.SetTile(pos, GeoTiles[GeoType.BLSlope]);
+                    GeoLayers[SelectedLayer].SetTile(pos, GeoTiles[GeoType.BLSlope]);
+                    SetTile(SelectedLayer, pos, GeoType.BLSlope);
                     return true;
                 }
                 else if (down == GeoType.Solid && right == GeoType.Solid && up != GeoType.Solid && left != GeoType.Solid)
                 {
-                    layer.SetTile(pos, GeoTiles[GeoType.BRSlope]);
+                    GeoLayers[SelectedLayer].SetTile(pos, GeoTiles[GeoType.BRSlope]);
+                    SetTile(SelectedLayer, pos, GeoType.BRSlope);
                     return true;
                 }
                 else if (up == GeoType.Solid && left == GeoType.Solid && down != GeoType.Solid && right != GeoType.Solid)
                 {
-                    layer.SetTile(pos, GeoTiles[GeoType.TLSlope]);
+                    GeoLayers[SelectedLayer].SetTile(pos, GeoTiles[GeoType.TLSlope]);
+                    SetTile(SelectedLayer, pos, GeoType.TLSlope);
                     return true;
                 }
                 else if (up == GeoType.Solid && right == GeoType.Solid && down != GeoType.Solid && left != GeoType.Solid)
                 {
-                    layer.SetTile(pos, GeoTiles[GeoType.TRSlope]);
+                    GeoLayers[SelectedLayer].SetTile(pos, GeoTiles[GeoType.TRSlope]);
+                    SetTile(SelectedLayer, pos, GeoType.TRSlope);
                     return true;
                 }
 
                 return false;
             }
 
-            layer.SetTile(pos, GeoTiles[(GeoType)obj]);
+            GeoLayers[SelectedLayer].SetTile(pos, GeoTiles[(GeoType)obj]);
+            SetTile(SelectedLayer, pos, (GeoType)obj);
             return true;
         }
         else if (typeof(T) == typeof(FeatureType))
@@ -273,11 +269,13 @@ public class GeoEditor : MonoBehaviour, IGridEditor
                 featureObj.name = $"FL{SelectedLayer}_{pos.x}_{-pos.y}";
 
                 featureList.Add(new(feature, featureObj));
+                AddFeature(isSpecial ? 0 : SelectedLayer, pos, feature);
             }
             else
             {
                 Destroy(sameFeature.gameObject);
                 featureList.Remove(sameFeature);
+                RemoveFeature(isSpecial ? 0 : SelectedLayer, pos, feature);
             }
 
             return true;
@@ -286,6 +284,21 @@ public class GeoEditor : MonoBehaviour, IGridEditor
         {
             throw new ArgumentException("obj should be of type GeoType or FeatureType");
         }
+    }
+
+    private void SetTile(int layer, Vector3Int pos, GeoType type)
+    {
+        CurrentLevelMatrix.columns[pos.x].cells[-pos.y].layers[layer].geoType = type;
+    }
+
+    private void AddFeature(int layer, Vector3Int pos, FeatureType featureType)
+    {
+        CurrentLevelMatrix.columns[pos.x].cells[-pos.y].layers[layer].AddFeature(featureType);
+    }
+
+    private void RemoveFeature(int layer, Vector3Int pos, FeatureType featureType)
+    {
+        CurrentLevelMatrix.columns[pos.x].cells[-pos.y].layers[layer].RemoveFeature(featureType);
     }
 
     public void Clear(Vector3Int pos)

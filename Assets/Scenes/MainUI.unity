@@ -782,7 +782,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   start: {x: 0, y: 0}
-  size: {x: 0, y: 0}
   color: {r: 0, g: 0, b: 1, a: 0.1}
   cursorColor: {r: 1, g: 0, b: 1, a: 1}
   transformMatrix:
@@ -811,6 +810,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 566221839}
+  - component: {fileID: 566221840}
+  - component: {fileID: 566221841}
   m_Layer: 5
   m_Name: Tabs
   m_TagString: Untagged
@@ -836,8 +837,48 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 1}
+--- !u!114 &566221840
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 566221838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30649d3a9faa99c48a7b1166b86bf2a0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Padding:
+    m_Left: 0
+    m_Right: 0
+    m_Top: 0
+    m_Bottom: 0
+  m_ChildAlignment: 0
+  m_Spacing: 0
+  m_ChildForceExpandWidth: 1
+  m_ChildForceExpandHeight: 1
+  m_ChildControlWidth: 0
+  m_ChildControlHeight: 0
+  m_ChildScaleWidth: 0
+  m_ChildScaleHeight: 0
+  m_ReverseArrangement: 0
+--- !u!114 &566221841
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 566221838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3245ec927659c4140ac4f8d17403cc18, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_HorizontalFit: 2
+  m_VerticalFit: 0
 --- !u!1 &768974876
 GameObject:
   m_ObjectHideFlags: 0
@@ -1321,9 +1362,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   CurrentEditor: {fileID: 0}
+  PreviewCameraPrefab: {fileID: 1021735365053460417, guid: 0199481cc12b40f4da2b7b47bc4c4f9e, type: 3}
   TabPrefab: {fileID: 7548270680561811397, guid: 00e11cfdebd65e6409b162e692423cc7, type: 3}
   TabsObj: {fileID: 566221838}
   Tools: {fileID: 2028233862}
+  CameraControls: {fileID: 519420033}
   SaveButton: {fileID: 1609762019}
   LoadButton: {fileID: 779297893}
   RenderButton: {fileID: 445625675}

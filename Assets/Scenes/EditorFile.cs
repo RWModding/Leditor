@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -31,5 +32,11 @@ public class EditorFile
 
         Lines = File.ReadAllLines(TxtFile);
         Geometry = new LevelMatrix(GeometryString);
+    }
+
+    internal void SaveToDisk()
+    {
+        GeometryString = Geometry.ToString();
+        File.WriteAllLines(TxtFile, Lines);
     }
 }

@@ -172,7 +172,7 @@ public class LevelMatrix
             res += columns[i].ToString();
             if (i < columns.Length - 1)
             {
-                res += ",";
+                res += ", ";
             }
         }
         res += "]";
@@ -207,7 +207,7 @@ public class LColumn
             res += cells[i].ToString();
             if (i < cells.Length - 1)
             {
-                res += ",";
+                res += ", ";
             }
         }
         res += "]";
@@ -239,7 +239,7 @@ public class LCell
             res += layers[i].ToString();
             if (i < layers.Length - 1)
             {
-                res += ",";
+                res += ", ";
             }
         }
         res += "]";
@@ -290,13 +290,13 @@ public class LLayer
 
     public override string ToString()
     {
-        string res = string.Format("[{0},[", geoType);
+        string res = string.Format("[{0}, [", (int)geoType);
         for (int i = 0; i < featureType.Count; i++)
         {
-            res += featureType[i].ToString();
+            res += ((int)featureType[i]).ToString();
             if (i < featureType.Count - 1)
             {
-                res += ",";
+                res += ", ";
             }
         }
         res += "]]";
