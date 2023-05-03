@@ -1,0 +1,2 @@
+-["Tile Test", color(210, 180, 180)]
+[#nm:"Skinny Beam", #sz:point(2,1), #specs:[1,1], #specs2:0, #tp:"voxelStruct", #repeatL:[3,4,3], #bfTiles:0, #rnd:1, #ptPos:0, #tags:["nonSolid"]]
