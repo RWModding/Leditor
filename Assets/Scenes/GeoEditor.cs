@@ -1,11 +1,10 @@
+using SimpleFileBrowser;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using Unity.VisualScripting;
-using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 using static FeatureType;
@@ -123,9 +122,6 @@ public class GeoEditor : MonoBehaviour, IGridEditor
 
     void Start()
     {
-        //-- TODO: Placeholder... should be replaced when a proper manager is implemented
-        EditorManager.Instance.CurrentEditor = this;
-
         LoadedFile = EditorManager.FileToLoad;
         EditorManager.FileToLoad = null;
 
@@ -187,12 +183,15 @@ public class GeoEditor : MonoBehaviour, IGridEditor
     void Update()
     {
         //-- TODO: Placeholder... should be replaced with something proper
-        if (Input.GetKeyDown(KeyCode.Tab))
+        if (!FileBrowser.IsOpen)
         {
-            SelectedLayer++;
-            if (SelectedLayer > 2)
+            if (Input.GetKeyDown(KeyCode.Tab))
             {
-                SelectedLayer = 0;
+                SelectedLayer++;
+                if (SelectedLayer > 2)
+                {
+                    SelectedLayer = 0;
+                }
             }
         }
     }

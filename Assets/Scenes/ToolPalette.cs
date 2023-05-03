@@ -1,3 +1,4 @@
+using SimpleFileBrowser;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -99,7 +100,7 @@ public class ToolPalette : MonoBehaviour
 
     private void OnToolSelected(GameObject button, Tool tool)
     {
-        if (SelectedTool == tool) return;
+        if (SelectedTool == tool || FileBrowser.IsOpen) return;
 
         SelectedTool = tool;
 
@@ -119,7 +120,7 @@ public class ToolPalette : MonoBehaviour
     
     void Update()
     {
-        if (Input.GetMouseButton(0))
+        if (Input.GetMouseButton(0) && !FileBrowser.IsOpen)
         {
             var mousePos = Input.mousePosition;
             var worldPos = camera.ScreenToWorldPoint(mousePos);

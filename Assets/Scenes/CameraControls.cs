@@ -1,3 +1,4 @@
+using SimpleFileBrowser;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -37,8 +38,11 @@ public class CameraControls : MonoBehaviour
 
     void Update()
     {
-        HandleCameraDrag();
-        HandleCameraZoom();
+        if (!FileBrowser.IsOpen) {
+            HandleCameraDrag();
+            HandleCameraZoom();
+        }
+
         HandleCameraConstraints();
     }
 

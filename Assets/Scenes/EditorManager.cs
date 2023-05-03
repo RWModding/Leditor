@@ -6,10 +6,10 @@ using System.IO;
 using System.Linq;
 using System.Transactions;
 using TMPro;
-using UnityEditor.EditorTools;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using SimpleFileBrowser;
 
 public class EditorManager : MonoBehaviour
 {
@@ -55,12 +55,17 @@ public class EditorManager : MonoBehaviour
 
     private void OnLoadClick()
     {
-        NativeFilePicker.PickFile(OnFilePicked, "txt", "png");
+        FileBrowser.ShowLoadDialog(OnFilePicked, OnFilePickCancel, FileBrowser.PickMode.Files);
     }
 
-    private void OnFilePicked(string path)
+    private void OnFilePickCancel()
     {
-        if (path != null)
+    }
+
+    private void OnFilePicked(string[] paths)
+    {
+        var path = paths?.FirstOrDefault();
+        if (!string.IsNullOrEmpty(path))
         {
             FileToLoad = new EditorFile(path);
 
