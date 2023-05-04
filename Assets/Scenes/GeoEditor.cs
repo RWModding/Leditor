@@ -198,7 +198,7 @@ public class GeoEditor : MonoBehaviour, IGridEditor
 
     public int SelectedLayer { get; set; }
 
-    public bool TryPlace<T>(int obj, Vector3Int pos) where T : Enum
+    public bool TryPlace<T>(int obj, Vector3Int pos, bool alwaysPlace = false) where T : Enum
     {
         if (pos.x < 0 || pos.x > CurrentLevelMatrix.Width - 1 || pos.y > 0 || pos.y < -CurrentLevelMatrix.Height + 1)
         {
@@ -270,7 +270,7 @@ public class GeoEditor : MonoBehaviour, IGridEditor
                 featureList.Add(new(feature, featureObj));
                 AddFeature(isSpecial ? 0 : SelectedLayer, pos, feature);
             }
-            else
+            else if (!alwaysPlace)
             {
                 Destroy(sameFeature.gameObject);
                 featureList.Remove(sameFeature);
@@ -323,6 +323,17 @@ public class GeoEditor : MonoBehaviour, IGridEditor
     {
         return geo >= GeoType.BLSlope && geo <= GeoType.TRSlope;
     }
+
+    public bool CheckPosInBounds(Vector2 pos)
+    {
+        return pos.x >= 0 && pos.y <= 0 && pos.x < CurrentLevelMatrix.Width && pos.y > -CurrentLevelMatrix.Height;
+    }
+
+    public Vector2 ClampPosToBounds(Vector2 pos)
+    {
+        return new Vector2(Mathf.Clamp(pos.x, 0, CurrentLevelMatrix.Width - 0.0001f), Mathf.Clamp(pos.y, -CurrentLevelMatrix.Height + 0.0001f, 0));
+    }
+        
 
     public class FeatureBundle {
         public readonly FeatureType feature;

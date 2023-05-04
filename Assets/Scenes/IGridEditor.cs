@@ -7,7 +7,7 @@ public interface IGridEditor: IEditor
 {
     public int SelectedLayer { get; set; }
 
-    public bool TryPlace<T>(int obj, Vector3Int pos) where T : Enum;
+    public bool TryPlace<T>(int obj, Vector3Int pos, bool alwaysPlace = false) where T : Enum;
 
     public void Clear(Vector3Int pos);
 

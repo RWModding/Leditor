@@ -116,15 +116,26 @@ public class ToolPalette : MonoBehaviour
     }
 
     private Vector3 lastClickPos;
-    private bool clickHeld;
-    
+    private bool regularClickHeld;
+    private bool dragClickHeld;
+
     void Update()
     {
         if (Input.GetMouseButton(0) && !FileBrowser.IsOpen)
         {
             var mousePos = Input.mousePosition;
             var worldPos = camera.ScreenToWorldPoint(mousePos);
-            if (!clickHeld || Vector2Int.CeilToInt(worldPos) != Vector2Int.CeilToInt(lastClickPos))
+
+            if (dragClickHeld)
+            {
+                SelectedTool.OnDragUpdate(worldPos);
+            }
+            else if (!regularClickHeld && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
+            {
+                dragClickHeld = true;
+                SelectedTool.OnDragStart(worldPos);
+            }
+            else if (!regularClickHeld || Vector2Int.CeilToInt(worldPos) != Vector2Int.CeilToInt(lastClickPos))
             {
 
                 //-- Ignoring clicks over UI elements
@@ -132,13 +143,19 @@ public class ToolPalette : MonoBehaviour
                 {
                     SelectedTool.OnClick(worldPos);
                     lastClickPos = worldPos;
-                    clickHeld = true;
                 }
+                regularClickHeld = true;
             }
+
         }
         else
         {
-            clickHeld = false;
+            if (dragClickHeld)
+            {
+                SelectedTool.OnDragEnd(camera.ScreenToWorldPoint(Input.mousePosition));
+            }
+            regularClickHeld = false;
+            dragClickHeld = false;
         }
     }
 }
