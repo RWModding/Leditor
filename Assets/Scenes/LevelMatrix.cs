@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
+using UnityEngine;
 
 /// <summary>
 /// A level's geomtry information.
@@ -57,11 +57,25 @@ public class LevelMatrix
                     var savedLayer = savedCell[k];
                     var savedFeatures = (IList) savedLayer[1];
 
-                    var layer = new LLayer((GeoType) Enum.Parse(typeof(GeoType), savedLayer[0].ToString()));
+                    var geoNumber = (GeoType)Enum.Parse(typeof(GeoType), savedLayer[0].ToString());
+                    if ((int)geoNumber == 8)
+                    {
+                        geoNumber = 0;
+                    }
+
+                    var layer = new LLayer(geoNumber);
 
                     foreach (var savedFeature in savedFeatures)
                     {
-                        layer.AddFeature((FeatureType) Enum.Parse(typeof(FeatureType), savedFeature.ToString()));
+                        var featureNumber = (FeatureType)Enum.Parse(typeof(FeatureType), savedFeature.ToString());
+                        if ((int)featureNumber != 8 && (int)featureNumber < 13 || (int)featureNumber > 17)
+                        {
+                            //-- Ignoring special features on layer 2 and 3
+                            if (k == 0 || !IsFeatureSpecial(featureNumber))
+                            {
+                                layer.AddFeature(featureNumber);
+                            }
+                        }
                     }
 
                     cell.layers[k] = layer;
