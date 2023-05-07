@@ -1,3 +1,4 @@
+using Unity.Netcode;
 using Unity.VisualScripting;
 using UnityEngine;
 
@@ -84,9 +85,33 @@ public class GridLines : MonoBehaviour
         {
             Vector2 mousePos = camera.ScreenToWorldPoint(Input.mousePosition);
 
-            if (mousePos.x > gridStart.x && mousePos.x < gridStart.x + size.x && mousePos.y < gridStart.y && mousePos.y > gridStart.y - size.y)
+            if (mousePos.x >= gridStart.x && mousePos.x < gridStart.x + size.x && mousePos.y <= gridStart.y && mousePos.y > gridStart.y - size.y)
             {
                 DrawRect(mousePos, mousePos, cursorRectColor);
+            }
+        }
+
+        if (NetworkManager.Singleton.IsClient)
+        {
+            foreach (var player in Networking.Players)
+            {
+                if (player.PlayerID != NetworkManager.Singleton.LocalClientId && player.CurrentTabName == EditorManager.Instance.CurrentTab?.File.Name)
+                {
+                    var mousePos = player.CursorPos;
+
+                    if (mousePos.x >= gridStart.x && mousePos.x < gridStart.x + size.x && mousePos.y <= gridStart.y && mousePos.y > gridStart.y - size.y)
+                    {
+                        DrawRect(mousePos, mousePos, player.CursorColor);
+                    }
+                }
+            }
+        }
+
+        if (Operation.Current != null)
+        {
+            foreach (var action in Operation.Current.Actions)
+            {
+                DrawRect(new (action.Position.x, action.Position.y), new (action.Position.x, action.Position.y), cursorRectColor);
             }
         }
 

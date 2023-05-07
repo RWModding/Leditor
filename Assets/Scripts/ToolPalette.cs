@@ -132,8 +132,15 @@ public class ToolPalette : MonoBehaviour
             }
             else if (!regularClickHeld && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
             {
-                dragClickHeld = true;
-                SelectedTool.OnDragStart(worldPos);
+                if (!EventSystem.current.IsPointerOverGameObject())
+                {
+                    dragClickHeld = SelectedTool.OnDragStart(worldPos);
+
+                    if (dragClickHeld)
+                    {
+                        Operation.Start(EditorManager.Instance.CurrentTab.File.Name);
+                    }
+                }
             }
             else if (!regularClickHeld || Vector2Int.CeilToInt(worldPos) != Vector2Int.CeilToInt(lastClickPos))
             {
@@ -141,6 +148,11 @@ public class ToolPalette : MonoBehaviour
                 //-- Ignoring clicks over UI elements
                 if (!EventSystem.current.IsPointerOverGameObject())
                 {
+                    if (!regularClickHeld)
+                    {
+                        Operation.Start(EditorManager.Instance.CurrentTab.File.Name);
+                    }
+
                     SelectedTool.OnClick(worldPos);
                     lastClickPos = worldPos;
                 }
@@ -156,6 +168,7 @@ public class ToolPalette : MonoBehaviour
             }
             regularClickHeld = false;
             dragClickHeld = false;
+            Operation.Commit();
         }
     }
 }

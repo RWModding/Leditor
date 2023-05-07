@@ -10,6 +10,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using SimpleFileBrowser;
+using Unity.Netcode;
 
 public class EditorManager : MonoBehaviour
 {
@@ -29,9 +30,14 @@ public class EditorManager : MonoBehaviour
     public Button LoadButton;
     public Button RenderButton;
     public Button SettingsButton;
+    public Button HostButton;
+    public Button ConnectButton;
+    public TextMeshProUGUI InviteCode;
+    public GameObject InviteCodeInputGameObject;
+    public TextMeshProUGUI InviteCodeInputText;
 
-    private List<EditorTab> Tabs = new();
-    private EditorTab CurrentTab;
+    public List<EditorTab> Tabs = new();
+    public EditorTab CurrentTab;
 
     private void Awake()
     {
@@ -41,6 +47,21 @@ public class EditorManager : MonoBehaviour
         LoadButton.onClick.AddListener(OnLoadClick);
         RenderButton.onClick.AddListener(OnRenderClick);
         SettingsButton.onClick.AddListener(OnSettingsClick);
+        HostButton.onClick.AddListener(OnHostClick);
+        ConnectButton.onClick.AddListener(OnConnectClick);
+    }
+
+    private void OnHostClick()
+    {
+        StartCoroutine(Networking.ConfigureTransportAndStartNgoAsHost(InviteCode));
+    }
+
+    private void OnConnectClick()
+    {
+        if (string.IsNullOrEmpty(InviteCodeInputText.text)) return;
+        var inviteCode = InviteCodeInputText.text.Trim().ToUpper().Substring(0, 6);
+        InviteCodeInputText.text = "";
+        StartCoroutine(Networking.ConfigureTransportAndStartNgoAsConnectingPlayer(InviteCode, inviteCode));
     }
 
     private void OnSettingsClick()
@@ -67,16 +88,42 @@ public class EditorManager : MonoBehaviour
         var path = paths?.FirstOrDefault();
         if (!string.IsNullOrEmpty(path))
         {
-            FileToLoad = new EditorFile(path);
+            var file = new EditorFile(path);
+            var levelString = string.Join('\n', file.Lines);
 
-            var oldTab = Tabs.FirstOrDefault(x => x.File.Name == FileToLoad.Name);
-            if (oldTab != null)
+            if (NetworkManager.Singleton.IsServer)
             {
-                CloseTab(oldTab);
+                Networking.Instance.SendOpenTab(file.Name, levelString, false);
             }
-
-            SceneManager.LoadScene("GeoEditor", LoadSceneMode.Additive);
+            else if (NetworkManager.Singleton.IsClient)
+            {
+                Networking.Instance.SendOpenTab(file.Name, levelString, true);
+            }
+            else
+            {
+                OpenTab(file.Name, levelString, file.TxtFile);
+            }
         }
+    }
+
+    public void OpenTab(string levelName, string levelString, string filePath = null)
+    {
+        if (!string.IsNullOrEmpty(filePath))
+        {
+            FileToLoad = new EditorFile(filePath);
+        }
+        else
+        {
+            FileToLoad = new EditorFile(levelName, levelString);
+        }
+
+        var oldTab = Tabs.FirstOrDefault(x => x.File.Name == FileToLoad.Name);
+        if (oldTab != null)
+        {
+            CloseTab(oldTab);
+        }
+
+        SceneManager.LoadScene("GeoEditor", LoadSceneMode.Additive);
     }
 
     private void OnSaveClick()
@@ -93,7 +140,11 @@ public class EditorManager : MonoBehaviour
 
     void Update()
     {
-        
+        var allowNetworkButtons = string.IsNullOrEmpty(InviteCode.text) && Tabs.Count == 0;
+
+        InviteCodeInputGameObject.SetActive(allowNetworkButtons);
+        HostButton.interactable = allowNetworkButtons;
+        ConnectButton.interactable = allowNetworkButtons;
     }
 
     public void OnEditorLoaded(GeoEditor geoEditor)
@@ -102,7 +153,7 @@ public class EditorManager : MonoBehaviour
         var tab = new EditorTab(geoEditor, tabObj);
         tabObj.name = tab.File.Name;
         var preview = tab.GameObject.transform.Find("Preview");
-        tab.GameObject.transform.Find("CloseButton").GetComponent<Button>().onClick.AddListener(() => CloseTab(tab));
+        tab.GameObject.transform.Find("CloseButton").GetComponent<Button>().onClick.AddListener(() => CloseTabClick(tab));
         preview.GetComponent<Button>().onClick.AddListener(() => SelectTab(tab));
         preview.GetComponentInChildren<TextMeshProUGUI>().text = tab.File.Name;
 
@@ -118,6 +169,31 @@ public class EditorManager : MonoBehaviour
         {
             var tab = Tabs[i];
             tab.GameObject.transform.localPosition = new Vector3(i * 100, 0);
+        }
+    }
+
+    public void CloseTabClick(EditorTab tab)
+    {
+        if (NetworkManager.Singleton.IsServer)
+        {
+            Networking.Instance.SendCloseTab(tab.File.Name, false);
+        }
+        else if (NetworkManager.Singleton.IsClient)
+        {
+            Networking.Instance.SendCloseTab(tab.File.Name, true);
+        }
+        else
+        {
+            CloseTab(tab);
+        }
+    }
+
+    public void CloseTab(string tabName)
+    {
+        var tab = Tabs.FirstOrDefault(x => x.File.Name == tabName);
+        if (tab != null)
+        {
+            CloseTab(tab);
         }
     }
 

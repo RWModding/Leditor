@@ -25,6 +25,13 @@ public class EditorFile
     public string TxtFile => Path + Name + ".txt";
     public string PngFile => Path + Name + ".png";
 
+    public EditorFile(string name, string levelString)
+    {
+        Name = name;
+        Lines = levelString.Split('\n');
+        Geometry = new LevelMatrix(GeometryString);
+    }
+
     public EditorFile(string path)
     {
         Path = System.IO.Path.GetDirectoryName(path) + System.IO.Path.DirectorySeparatorChar;

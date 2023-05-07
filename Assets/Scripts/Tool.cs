@@ -13,7 +13,7 @@ public abstract class Tool
 
     public abstract void OnClick(Vector2 position);
 
-    public abstract void OnDragStart(Vector2 position);
+    public abstract bool OnDragStart(Vector2 position);
 
     public abstract void OnDragUpdate(Vector2 position);
 

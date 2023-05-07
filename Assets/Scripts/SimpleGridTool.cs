@@ -74,7 +74,7 @@ public class SimpleGridTool : Tool
         }
     }
 
-    public override void OnDragStart(Vector2 position)
+    public override bool OnDragStart(Vector2 position)
     {
         if (EditorManager.Instance.CurrentEditor is GeoEditor editor) {
             if (editor.CheckPosInBounds(position))
@@ -83,8 +83,10 @@ public class SimpleGridTool : Tool
                 GridLines.Instance.rectSelectStart = position;
                 GridLines.Instance.rectSelectEnd = position;
                 currentDragStart = position;
+                return true;
             }
         }
+        return false;
     }
 
     public override void OnDragUpdate(Vector2 position)

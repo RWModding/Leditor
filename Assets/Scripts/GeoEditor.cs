@@ -248,7 +248,6 @@ public class GeoEditor : MonoBehaviour, IGridEditor
                 return false;
             }
 
-            GeoLayers[SelectedLayer].SetTile(pos, GeoTiles[(GeoType)obj]);
             SetTile(SelectedLayer, pos, (GeoType)obj);
             return true;
         }
@@ -261,19 +260,10 @@ public class GeoEditor : MonoBehaviour, IGridEditor
             var sameFeature = featureList.FirstOrDefault(x => x.feature == feature);
             if (sameFeature == null)
             {
-                var featureObj = Instantiate(FeaturePrefab, new Vector3(pos.x, pos.y, isSpecial ? -1 : 0), Quaternion.identity, isSpecial ? SpecialFeaturesObj.transform : FeatureLayerObjs[SelectedLayer].transform);
-                var featureSprite = featureObj.GetComponent<SpriteRenderer>();
-                featureSprite.sprite = FeatureSprites[feature];
-                featureSprite.color = isSpecial ? Color.white : LayerColors[SelectedLayer];
-                featureObj.name = $"FL{SelectedLayer}_{pos.x}_{-pos.y}";
-
-                featureList.Add(new(feature, featureObj));
                 AddFeature(isSpecial ? 0 : SelectedLayer, pos, feature);
             }
             else if (!alwaysPlace)
             {
-                Destroy(sameFeature.gameObject);
-                featureList.Remove(sameFeature);
                 RemoveFeature(isSpecial ? 0 : SelectedLayer, pos, feature);
             }
 
@@ -287,17 +277,64 @@ public class GeoEditor : MonoBehaviour, IGridEditor
 
     private void SetTile(int layer, Vector3Int pos, GeoType type)
     {
-        CurrentLevelMatrix.columns[pos.x].cells[-pos.y].layers[layer].geoType = type;
+        Operation.NewAction(Operation.ActionType.SetGeoType, layer, new Vector3Int(pos.x, pos.y, pos.z), (int)CurrentLevelMatrix.columns[pos.x].cells[-pos.y].layers[layer].geoType, (int)type);
     }
 
     private void AddFeature(int layer, Vector3Int pos, FeatureType featureType)
     {
-        CurrentLevelMatrix.columns[pos.x].cells[-pos.y].layers[layer].AddFeature(featureType);
+        Operation.NewAction(Operation.ActionType.AddFeature, layer, new Vector3Int(pos.x, pos.y, pos.z), (int)featureType, (int)featureType);
     }
 
     private void RemoveFeature(int layer, Vector3Int pos, FeatureType featureType)
     {
-        CurrentLevelMatrix.columns[pos.x].cells[-pos.y].layers[layer].RemoveFeature(featureType);
+        Operation.NewAction(Operation.ActionType.RemoveFeature, layer, new Vector3Int(pos.x, pos.y, pos.z), (int)featureType, (int)featureType);
+    }
+
+    public void CommitOperation(Operation.Bundle bundle)
+    {
+        foreach (var action in bundle.Actions)
+        {
+            var pos = action.Position;
+            var layer = action.Layer;
+
+            if (action.Type == Operation.ActionType.SetGeoType) {
+                var geoType = (GeoType)action.NewValue;
+
+                GeoLayers[action.Layer].SetTile(pos, GeoTiles[geoType]);
+                CurrentLevelMatrix.columns[pos.x].cells[-pos.y].layers[layer].geoType = geoType;
+            }
+            else if (action.Type == Operation.ActionType.AddFeature || action.Type == Operation.ActionType.RemoveFeature) {
+                var feature = (FeatureType)action.NewValue;
+                var isSpecial = LevelMatrix.IsFeatureSpecial(feature);
+
+                var featureList = isSpecial ? SpecialFeatures[(pos.x, -pos.y)] : Features[(action.Layer, pos.x, -pos.y)];
+                var sameFeature = featureList.FirstOrDefault(x => x.feature == feature);
+
+                if (action.Type == Operation.ActionType.AddFeature)
+                {
+                    if (sameFeature == null)
+                    {
+                        var featureObj = Instantiate(FeaturePrefab, new Vector3(pos.x, pos.y, isSpecial ? -1 : 0), Quaternion.identity, isSpecial ? SpecialFeaturesObj.transform : FeatureLayerObjs[action.Layer].transform);
+                        var featureSprite = featureObj.GetComponent<SpriteRenderer>();
+                        featureSprite.sprite = FeatureSprites[feature];
+                        featureSprite.color = isSpecial ? Color.white : LayerColors[action.Layer];
+                        featureObj.name = $"FL{action.Layer}_{pos.x}_{-pos.y}";
+
+                        featureList.Add(new(feature, featureObj));
+                    }
+                    CurrentLevelMatrix.columns[pos.x].cells[-pos.y].layers[isSpecial ? 1 : layer].AddFeature(feature);
+                }
+                else if (action.Type == Operation.ActionType.RemoveFeature)
+                {
+                    if (sameFeature != null)
+                    {
+                        Destroy(sameFeature.gameObject);
+                        featureList.Remove(sameFeature);
+                    }
+                    CurrentLevelMatrix.columns[pos.x].cells[-pos.y].layers[isSpecial ? 1 : layer].RemoveFeature(feature);
+                }
+            }
+        }
     }
 
     public void Clear(Vector3Int pos)
