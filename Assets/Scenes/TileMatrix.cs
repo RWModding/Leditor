@@ -31,7 +31,7 @@ public class tlMatrix
     //tilehead data is first location of the tile in the tiles list?, then the tile name
     //tilebody data is first the location of the tilehead,  and then what i think is the layer of the tilehead. (since rarely tiles are multilayered)
 
-    tlColumn[] columns;
+    public tlColumn[] columns;
 
     public tlMatrix (int height,int width)
     {
@@ -56,21 +56,21 @@ public class tlMatrix
     }
 
 
-    public void AddTile(LETile tile, Vector2 pos)
+    public void AddTile(LETile tile, Vector2 pos,int layer)
     {
         int col = (int)pos.x;
         int row = (int)pos.y;
         tileCell selectedCell = columns[col].cells[row];
-        selectedCell.placedTileOrMat = new PlacedTile(tile);
+        selectedCell.placedTileOrMat[layer] = new PlacedTile(tile);
         
     }
     
-    public void AddMat(Mat material, Vector2 pos)
+    public void AddMat(Mat material, Vector2 pos, int layer)
     {
         int col = (int)pos.x;
         int row = (int)pos.y;
         tileCell selectedCell = columns[col].cells[row];
-        selectedCell.placedTileOrMat = new PlacedMaterial(material);
+        selectedCell.placedTileOrMat[layer] = new PlacedMaterial(material);
     }
 
 }
@@ -97,7 +97,7 @@ public class tileCell
     //format like:
     // [#tp: "default",#data: 0]
     // [#tp: "tileBody",#data: [point(2,16), 1]]
-    public TEPlaced placedTileOrMat;
+    public TEPlaced[] placedTileOrMat;
 
     /// <summary>
     /// Creates a default tile cell.
@@ -107,13 +107,13 @@ public class tileCell
         placedTileOrMat = null;
     }
 
-    public void PlaceTile(LETile tile) {
-        placedTileOrMat = new PlacedTile(tile);
+    public void PlaceTile(LETile tile,int layer) {
+        placedTileOrMat[layer] = new PlacedTile(tile);
     }
 
-    public void PlaceMaterial(Mat material)
+    public void PlaceMaterial(Mat material,int layer)
     {
-        placedTileOrMat = new PlacedMaterial(material);
+        placedTileOrMat[layer] = new PlacedMaterial(material);
     }
 
 }
@@ -138,12 +138,20 @@ public class Mat
      */
     public string MatName;
     public Color MatColor;
+    public string RenderType;
+
+    public Mat(string matName, Color matColor, string renderType)
+    {
+        MatName = matName;
+        MatColor = matColor;
+        RenderType = renderType;
+    }
 }
 
 public class PlacedTile : TEPlaced
 {
     LETile tile;
-    public Category category;
+    public TileCategory category;
     public Vector2? ChainPos = null; //only used for chainholders as special data guh.
     /// <summary>
     /// Creates a tile at a location.
@@ -213,7 +221,7 @@ public class TileImageStuff
     public Sprite[] splitUpLayers;
     public Sprite Icon;
 
-    public TileImageStuff(Texture2D rawImage, int bftiles, Vector2 origsize, int layers)
+    public TileImageStuff(Texture2D rawImage, int bftiles, Vector2 origsize, int layers, RenderType rendertype)
     {
         this.rawImage = rawImage;
         this.size = new(origsize.x + (2 * bftiles), origsize.y + (2 * bftiles));
@@ -221,9 +229,13 @@ public class TileImageStuff
         splitUpLayers = new Sprite[layers];
         for (int i = 0; i < layers; i++)
         {
-            splitUpLayers[i] = Sprite.Create(rawImage, new Rect(0, i * (size.y * 20), size.x * 20, size.y * 20), new Vector2(0f, 0f));
+            splitUpLayers[i] = Sprite.Create(rawImage, new Rect(0, i * (size.y * 20) + (rendertype == RenderType.voxelStruct?1:0), size.x * 20, size.y * 20), new Vector2(0f, 0f));
         }
-        Rect iconplace = new Rect(0,(size.y *20)* layers,origsize.x*16,origsize.y*16);
+        Rect iconplace = new Rect(0,(size.y *20)* layers + (rendertype == RenderType.voxelStruct ? 1 : 0), origsize.x*16,origsize.y*16);
+        while(iconplace.y + iconplace.height > rawImage.height)
+        {
+            iconplace.height--;
+        }
         Icon = Sprite.Create(rawImage, iconplace, new Vector2(0f, 0f));
     }
 }
@@ -238,15 +250,26 @@ public enum RenderType
 
 }
 
-public class Category
+public class TileCategory
 {
     public List<LETile> tiles;
     public Color categoryColor;
     public string categoryName;
-    public Category(string Name, Color Color)
+    public TileCategory(string Name, Color Color)
     {
         tiles = new List<LETile>();
         categoryColor = Color;
         categoryName = Name;
+    }
+}
+
+public class MaterialCategory
+{
+    public string Name;
+    public List<Mat> materials;
+    public MaterialCategory(string name)
+    {
+        materials = new List<Mat>();
+        Name = name;
     }
 }

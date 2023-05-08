@@ -11,6 +11,7 @@ public class EditorFile
     public string[] Lines;
 
     public LevelMatrix Geometry;
+    public tlMatrix Tiles;
 
     public string GeometryString { get => Lines[0]; set => Lines[0] = value; }
     public string TilesString { get => Lines[1]; set => Lines[1] = value; }
