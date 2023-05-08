@@ -1,0 +1,23 @@
+Standard,unified,150,150,150
+Concrete,unified,150,255,255
+Rainstone,unified,0,0,255
+Steel,unified,220,150,100
+Bricks,unified,200,150,100
+BigMetal,unified,255,0,0
+Tiny Signs,unified,255,200,255
+Scaffolding,unified,60,60,40
+Dense Pipes,densePipeType,0,0,150
+SuperStructure,unified,160,180,255
+SuperStructure2,unified,190,160,0
+Tiled Stone,tiles,100,0,255
+Chaotic Stone,tiles,255,0,255
+Small Pipes,pipeType,255,255,0
+Trash,pipeType,90,255,0
+Invisible,invisibleI,200,200,200
+LargeTrash,largeTrashType,175,30,255
+3DBricks,tiles,255,150,0
+Random Machines,tiles,72,116,80
+Dirt,dirtType,124,72,52
+Ceramic Tile,ceramicTile,60,60,100
+Temple Stone,tiles,0,120,180
+Circuits,densePipeType,0,150,0
