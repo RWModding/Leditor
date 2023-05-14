@@ -51,6 +51,20 @@ public class EditorManager : MonoBehaviour
         ConnectButton.onClick.AddListener(OnConnectClick);
     }
 
+    void Start()
+    {
+        StaticData.Init();
+    }
+
+    void Update()
+    {
+        var allowNetworkButtons = string.IsNullOrEmpty(InviteCode.text) && Tabs.Count == 0;
+
+        InviteCodeInputGameObject.SetActive(allowNetworkButtons);
+        HostButton.interactable = allowNetworkButtons;
+        ConnectButton.interactable = allowNetworkButtons;
+    }
+
     private void OnHostClick()
     {
         StartCoroutine(Networking.ConfigureTransportAndStartNgoAsHost(InviteCode));
@@ -131,20 +145,6 @@ public class EditorManager : MonoBehaviour
         if (CurrentTab == null || CurrentEditor == null) return;
         CurrentTab.File.SaveToDisk();
         UpdateTabPreview(CurrentTab);
-    }
-
-    void Start()
-    {
-        
-    }
-
-    void Update()
-    {
-        var allowNetworkButtons = string.IsNullOrEmpty(InviteCode.text) && Tabs.Count == 0;
-
-        InviteCodeInputGameObject.SetActive(allowNetworkButtons);
-        HostButton.interactable = allowNetworkButtons;
-        ConnectButton.interactable = allowNetworkButtons;
     }
 
     public void OnEditorLoaded(GeoEditor geoEditor)
