@@ -104,31 +104,24 @@ namespace Lingo
 
             string[] array = RecursiveParsing(str, '&', new char[] { '"' });
             //string[] array = str.Split('&');
-            for (int i = 0; i < array.Length; i++)
+            foreach (string v in array)
             {
-                string s = array[i].Trim();
-
-                try
+                string s = v.Trim();
+                string check = lstr;
+                lstr += s switch
                 {
-                    lstr += s switch
-                    {
-                        "BACKSPACE" => "\b",
-                        "EMPTY" => "\\e",
-                        "ENTER" => "\n",
-                        "PI" => Math.PI.ToString(), //this technically could be used as a float as well... but nobody will, right?
-                        "QUOTE" => "\"",
-                        "RETURN" => "\r",
-                        "SPACE" => " ",
-                        "TAB" => "\t",
-                        _ => throw new Exception() //well, that's one way to say "no I couldn't parse anything, try something else"
-                    };
-                }
-                catch
-                {
-                    if (s[0] == '"' && s[s.Length - 1] == '"')
-                    { lstr += s.Substring(1, s.Length - 2); }
-                    else { return false; } //only reaches this point if it's not a string or any escape characters
-                }
+                    "BACKSPACE" => "\b",
+                    "EMPTY" => "\\e",
+                    "ENTER" => "\n",
+                    "PI" => Math.PI.ToString(), //this technically could be used as a float as well... but nobody will, right?
+                    "QUOTE" => "\"",
+                    "RETURN" => "\r",
+                    "SPACE" => " ",
+                    "TAB" => "\t",
+                    _ when (s[0] == '"' && s[s.Length - 1] == '"') => s.Substring(1, s.Length - 2),
+                    _ => ""
+                };
+                if (check == lstr) return false; //if it hasn't changed, it's not a string
             }
             if (string.IsNullOrEmpty(lstr)) return false;
             lstr = Regex.Replace(lstr, "\\e", "");
