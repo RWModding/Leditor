@@ -37,7 +37,7 @@ namespace Lingo
         {
             str = str.Trim();
 
-            if (string.IsNullOrEmpty(str))
+            if (string.IsNullOrEmpty(str) || str.StartsWith("--")) //-- is for lingo comments
             { return null; }
 
             else if (TryStringFromLingo(str, out string s))
