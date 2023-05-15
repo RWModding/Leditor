@@ -18,12 +18,14 @@ namespace Lingo
     {
         public static string ToLingoString(this object obj)
         {
+            string format = "{0:#########0.####}";
             switch (obj)
             {
                 case string s: return ToLingoFromString(s);
-                case Vector2 v: return $"point({v.x}, {v.y})";
-                case Color c: return $"color({c.r}, {c.g}, {c.b})";
-                case Rect r: return $"rect({r.xMin}, {r.yMin}, {r.xMax}, {r.yMax})";
+                case float f: return LF(f);
+                case Vector2 v: return $"point({v.x}, {LF(v.y)})";
+                case Color c: return $"color({LF(c.r)}, {LF(c.g)}, {LF(c.b)})";
+                case Rect r: return $"rect({LF(r.xMin)}, {LF(r.yMin)}, {LF(r.xMax)}, {LF(r.yMax)})";
                 case KeyValuePair<string, object> kvp: return $"#{kvp.Key}: {kvp.Value.ToLingoString()}";
                 case object[] o: return $"[{string.Join(", ", o.Select(x => x.ToLingoString()))}]";
                 case null: return "0";
@@ -32,6 +34,13 @@ namespace Lingo
                 default: return obj.ToString();
             }
         }
+
+        /// <summary>
+        ///scientific notation breaks Lingo, so can't save any numbers that have too many digits
+        ///this format for some reason applies some generous rounding to large numbers
+        ///but that's okay, numbers that large are usually runtime numbers that don't matter
+        /// </summary>
+        public static string LF(float number) => string.Format("{0:#########0.####}", number);
 
         public static object FromLingoString(string str)
         {
@@ -290,17 +299,17 @@ namespace Lingo
             }
             return false;
         }
-        public static void SetFromKey(this object[] obj, string key, object value)
+        public static object[] SetFromKey(this object[] obj, string key, object value)
         {
             for (int i = 0; i < obj.Length; i++)
             {
                 if (obj[i] is KeyValuePair<string, object> kvp && kvp.Key == key)
                 {
                     obj[i] = new KeyValuePair<string, object>(key, value);
-                    return;
+                    return obj;
                 }
             }
-            obj.Concat(new object[] { new KeyValuePair<string, object>(key, value) });
+            return obj.Concat(new object[] { new KeyValuePair<string, object>(key, value) }).ToArray();
         }
     }
 }

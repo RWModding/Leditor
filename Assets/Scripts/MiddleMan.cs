@@ -34,40 +34,6 @@ namespace Lingo
                 Skippable = skippable;
             }
         }
-        #region oldAndShouldntBeUsed
-        public static object[] ToGenericOrNull<T>(T[] arr)
-        {
-            if (arr is null) return null;
-            else { return Array.ConvertAll(arr, (o) => (object)o); }
-        }
-
-        public static bool TryCast<T>(this object obj, ref T result)
-        {
-            if (obj is T t)
-            { result = t; return true; }
-            else { return false; }
-        }
-
-        public static bool TryLValuePair<T>(this object obj, ref T result, string key)
-        {
-            if (obj is KeyValuePair<string, object> p && p.Key == key && p.Value is T t)
-            { result = t; return true; }
-            else { return false; }
-        }
-        public static bool TryLValuePairArray<T>(this object obj, ref T[] result, string key)
-        {
-            if (obj is KeyValuePair<string, object> p && p.Key == key && p.Value is object[] a)
-            { try { result = Array.ConvertAll(a.ToArray(), (o) => (T)o); return true; } catch { return false; } }
-            else { return false; }
-        }
-
-        public static bool TryLArray<T>(this object obj, ref T[] result)
-        {
-            if (obj is object[] a)
-            { try { result = Array.ConvertAll(a.ToArray(), (o) => (T)o); return true; } catch { return false; } }
-            else { return false; }
-        }
-        #endregion
 
         #region ToLingoObject
         public static object ToLingoObjectFromAttributes<T>(T parent) where T : class
