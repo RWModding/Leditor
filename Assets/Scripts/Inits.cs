@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,11 +12,11 @@ namespace Lingo
 {
     public class Inits
     {
+        //-- TODO: make into a coroutine and display progress, can be very slow when loading images from HDDs
         public static void LoadTilesInit(string[] lines)
         {
             foreach (string line in lines)
             {
-                Debug.LogWarning(line);
                 if (line.Length > 0 && line[0] == '-')
                 {
                     string str = line.Substring(1);
@@ -26,8 +27,8 @@ namespace Lingo
 
                     if (Category.TryParse(arr, out Category cat))
                     {
-                        tileCategories.Add(cat, new());
                         Debug.Log(cat.ToLingoString());
+                        tileCategories.Add(cat, new());
                     }
                 }
                 else
@@ -39,6 +40,7 @@ namespace Lingo
                     if (LTile.TryParse(arr, out LTile tile))
                     {
                         Debug.Log(tile.ToLingoString());
+                        ParseTileImage(tile);
                     }
                 }
             }
@@ -73,6 +75,44 @@ namespace Lingo
                         Debug.Log(prop.ToLingoString());
                     }
                 }
+            }
+        }
+
+        public static void ParseTileImage(LTile tile)
+        {
+            var path = Path.Combine(Application.streamingAssetsPath, "Tiles", tile.name + ".png");
+
+            if (!File.Exists(path))
+            {
+                Debug.LogError($"missing image for tile {tile.name} at {path}");
+                return;
+            }
+
+            var rawData = File.ReadAllBytes(path);
+            tile.texture = new Texture2D(2, 2);
+            tile.texture.LoadImage(rawData);
+
+            if (tile.type == LTile.Type.voxelStruct)
+            {
+                tile.sprites = new Sprite[tile.repeatL.Length, (int)tile.size.x, (int)tile.size.y];
+                var layerHeight = tile.size.y * 20;
+                var top = tile.texture.height - 1;
+
+                for (var l = 0; l < tile.repeatL.Length; l++)
+                {
+                    for (var x = 0; x < tile.size.x; x++)
+                    {
+                        for (var y = 0; y < tile.size.y; y++)
+                        {
+                            var yStart = top - (layerHeight * (l + 1)) + (y * 20);
+                            var xStart = x * 20;
+
+                            tile.sprites[l, x, y] = Sprite.Create(tile.texture, new Rect(xStart, yStart, 20, 20), new Vector2(0, 0), 20);
+                        }
+                    }
+                }
+
+                tile.icon = Sprite.Create(tile.texture, new Rect(0, top - (tile.repeatL.Length * layerHeight) - 16, 0, 16), new Vector2(0, 0), 16);
             }
         }
 
@@ -111,9 +151,11 @@ namespace Lingo
             [LingoIndex(1, "sz")]
             public Vector2 size;
             [LingoIndex(2, "specs")]
-            public int[] specs;
+            private int[] _specs;
+            public GeoType[] specs;
             [LingoIndex(3, "specs2", nullable: true)]
-            public int[] specs2;
+            private int[] _specs2;
+            public GeoType[] specs2;
             [LingoIndex(4, "tp")]
             public Type type;
             [LingoIndex(5, "repeatL", skippable: true)]
@@ -124,30 +166,64 @@ namespace Lingo
             public float rnd;
             [LingoIndex(8, "tags")]
             public string[] tags;
+
+            public Texture2D texture;
+            //-- Layer, X, Y
+            public Sprite[,,] sprites;
+            public Sprite icon;
 #pragma warning enable
 
-            public static bool TryParse(object[] obj, out LTile tile)
+            public static bool TryParse(object[] lingoObj, out LTile tile)
             {
                 tile = new();
-                if (SyncAllAttributes(tile, obj))
+
+                if (SyncAllAttributes(tile, lingoObj))
                 {
                     if (tile.type == Type.none)
                     {
                         Debug.LogError($"type could not be found");
-                        Debug.LogError($"failed to parse line ({obj.ToLingoString()})");
+                        Debug.LogError($"failed to parse line ({lingoObj.ToLingoString()})");
                     }
 
                     if (tile.repeatL == null && !(tile.type == Type.box || tile.type == Type.voxelStructRockType))
                     {
                         Debug.LogError($"missing repeatL");
-                        Debug.LogError($"failed to parse line ({obj.ToLingoString()})");
+                        Debug.LogError($"failed to parse line ({lingoObj.ToLingoString()})");
                         Debug.LogError($"failed to parse line ({tile.ToLingoString()})");
                     }
+
+                    try
+                    {
+                        tile.specs = tile._specs.Cast<GeoType>().ToArray();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"failed to parse geo array");
+                        Debug.LogError($"({lingoObj.ToLingoString()})");
+                        Debug.LogError($"({tile.ToLingoString()})");
+                        return false;
+                    }
+
+                    if (tile._specs2 != null)
+                    {
+                        try
+                        {
+                            tile.specs2 = tile._specs2.Cast<GeoType>().ToArray();
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogError($"failed to parse geo array for layer 2");
+                            Debug.LogError($"({lingoObj.ToLingoString()})");
+                            Debug.LogError($"({tile.ToLingoString()})");
+                            return false;
+                        }
+                    }
+
                     return true;
                 }
                 else
                 {
-                    Debug.LogError($"failed to parse line ({obj.ToLingoString()})");
+                    Debug.LogError($"failed to parse line ({lingoObj.ToLingoString()})");
                     return false;
                 }
             }

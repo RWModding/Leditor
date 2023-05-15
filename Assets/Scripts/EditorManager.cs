@@ -115,22 +115,25 @@ public class EditorManager : MonoBehaviour
             }
             else
             {
-                OpenTab(file.Name, levelString, file.TxtFile);
+                OpenTab(file);
             }
         }
     }
 
-    public void OpenTab(string levelName, string levelString, string filePath = null)
+    public void OpenTab(EditorFile file)
     {
-        if (!string.IsNullOrEmpty(filePath))
-        {
-            FileToLoad = new EditorFile(filePath);
-        }
-        else
-        {
-            FileToLoad = new EditorFile(levelName, levelString);
-        }
+        FileToLoad = file;
+        ActuallyOpenTab();
+    }
 
+    public void OpenTab(string levelName, string levelString)
+    {
+        FileToLoad = new EditorFile(levelName, levelString);
+        ActuallyOpenTab();
+    }
+
+    private void ActuallyOpenTab()
+    {
         var oldTab = Tabs.FirstOrDefault(x => x.File.Name == FileToLoad.Name);
         if (oldTab != null)
         {

@@ -321,6 +321,7 @@ public class LLayer
 
 public enum GeoType
 {
+    Any = -1,
     Air = 0,
     Solid = 1,
     BLSlope = 2,

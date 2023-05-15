@@ -14,7 +14,7 @@ public class EditorFile
     public List<object[]> LingoData;
 
     public LevelMatrix Geometry;
-    public tlMatrix Tiles;
+    public TileData Tiles;
     public CameraData Cameras;
 
     public string GeometryString { get => Lines[0]; set => Lines[0] = value; }
@@ -47,8 +47,8 @@ public class EditorFile
         VersionFix();
 
         Geometry = new LevelMatrix(GeometryString);
+        Tiles = TileData.LoadTiles(LingoData[1]);
         Cameras = CameraData.LoadCams(LingoData[6]);
-        
     }
 
     internal void LoadLingo()
@@ -57,7 +57,7 @@ public class EditorFile
         
         foreach (string line in Lines)
         {
-        object obj = LingoParsing.FromLingoString(line);
+            object obj = LingoParsing.FromLingoString(line);
             if (obj is not object[] arr)
             { Debug.LogError("bad level"); } //if this happens the level is unloadable and should cancel 
             else
@@ -109,6 +109,11 @@ public class EditorFile
             { list.Add(defQuads); }
 
             LingoData[6].SetFromKey("quads", list.ToArray());
+        }
+
+        if (Lines.Length < LingoData.Count)
+        {
+            Array.Resize(ref Lines, LingoData.Count);
         }
 
         for (int i = 0; i < LingoData.Count; i++)

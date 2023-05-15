@@ -13,6 +13,7 @@ using static FeatureType;
 using static StaticData;
 using Debug = UnityEngine.Debug;
 using Lingo;
+using static Lingo.Inits;
 
 public class GeoEditor : MonoBehaviour, IGridEditor
 {
@@ -22,14 +23,17 @@ public class GeoEditor : MonoBehaviour, IGridEditor
     private readonly Color[] LayerColors = new Color[3] { new Color(0, 0, 0, 0.5f), new Color(0, 1, 0, 0.333f), new Color(1, 0, 0, 0.333f) };
 
     //TILE EDITOR STUFF
-    private List<TileCategory> TileCats;
-    private List<MaterialCategory> materialCats;
+    //private List<TileCategory> TileCats;
+    //private List<MaterialCategory> materialCats;
 
     //-- Layer, X, Y
     private readonly Dictionary<(int, int, int), List<FeatureBundle>> Features = new();
 
     //-- X, Y
     private readonly Dictionary<(int, int), List<FeatureBundle>> SpecialFeatures = new();
+
+    //-- Layer, X, Y
+    private readonly Dictionary<(int, int, int), TileBundle> Tiles = new();
 
     public LevelMatrix CurrentLevelMatrix;
     public EditorFile LoadedFile;
@@ -60,99 +64,12 @@ public class GeoEditor : MonoBehaviour, IGridEditor
         // TILE EDITOR STUFF
 
         //LoadTilesFromInit(tileInit); //really this should be loaded only once when the program is started.
-        LoadMaterials();
+        //LoadMaterials();
     }
 
     #region Tile Loading
 
-    public void LoadTilesFromInit(string[] Init)
-    {
-        //-["Tile Test", color(210, 180, 180)]
-        //[#nm:"3DBrick", #sz:point(1,1), #specs:[1], #specs2:0, #tp:"voxelStruct", #repeatL:[1, 1, 1, 7], #bfTiles:0, #rnd:1, #ptPos:0, #tags:[]]
-        TileCategory cat = null; // =^._.^=
-        foreach (string line in Init)
-        {
-            try
-            {
-                if (line.StartsWith("-"))
-                {
-                    string fuck = line.Substring(1);
-                    var replacedText = new Regex("color\\((.*)\\)").Replace(fuck, "\"$1\"");
-                    var categoryinit = JsonConvert.DeserializeObject<List<object>>(replacedText);
-                    string catName = categoryinit[0].ToString();
-                    string oof = categoryinit[1].ToString();
-                    string eff = oof.Substring(1, oof.Length - 2);
-                    string[] rgb = eff.Split(",");
-                    Color catColor = new(float.Parse(rgb[0]), float.Parse(rgb[1]), float.Parse(rgb[2]));
-
-                    cat = new TileCategory(catName, catColor);
-                }
-                else
-                {
-                    var tileInit = line.Substring(1, line.Length - 2).Split("#").ToList();
-                    tileInit.RemoveAt(0);
-
-                    var Name = tileInit[0].Split(":")[1].Trim().Replace(",", "").Replace("\"", "");
-                    var sizebits = tileInit[1].Split(":")[1].Trim().Replace("point(", "").Replace("),", "").Split(",");
-                    Vector2 Size = new(float.Parse(sizebits[0]), float.Parse(sizebits[1]));
-
-                    var savedSpec = tileInit[2].Split(":")[1].Trim().Replace("[", "").Replace("],", "").Split(",");
-                    GeoType[] spec = new GeoType[savedSpec.Length];
-                    for (int k = 0; k < savedSpec.Length; k++)
-                    {
-                        spec[k] = (GeoType)int.Parse(savedSpec[k]);
-                    }
-                    GeoType[] spec2 = null;
-                    var eff = tileInit[3].Trim().Split(":")[1];
-                    var se = eff.Substring(0, eff.Length - 1);
-                    if (se.Length != 1)
-                    {
-                        var savedSpec2 = se.Replace("[", "").Replace("]", "").Split(",");
-                        spec2 = new GeoType[savedSpec2.Length];
-                        for (int k = 0; k < savedSpec2.Length; k++)
-                        {
-                            spec2[k] = (GeoType)int.Parse(savedSpec2[k]);
-                        }
-                    }
-                    var renderType = tileInit[4].Replace("\"", "").Replace(",", "").Split(":")[1].Trim();
-                    RenderType rendtype = (RenderType)Enum.Parse(typeof(RenderType), renderType);
-                    int[] layers = null;
-                    if (rendtype != RenderType.voxelStructRockType && rendtype != RenderType.box)
-                    {
-                        var egg = tileInit[5].Trim().Split(":")[1].Replace("[", "").Replace("],", "").Split(",");
-                        layers = new int[egg.Length];
-                        for (int k = 0; k < savedSpec.Length; k++)
-                        {
-                            layers[k] = int.Parse(egg[k]);
-                        }
-                    }
-                    var buffertiles = int.Parse(tileInit[layers == null ? 5 : 6].Replace(",", "").Split(":")[1].Trim());
-
-                    var rnd = int.Parse(tileInit[layers == null ? 5 : 6].Split(":")[1].Replace(",", "").Trim());
-                    var tags = tileInit[layers == null ? 8 : 9].Split(":")[1].Trim().Replace("[\"", "").Replace("\"]", "").Split(",");
-                    List<string> taglist = tags.ToList();
-
-                    string ImagePath = Application.streamingAssetsPath + "/Tiles/" + Name + ".png";
-                    Texture2D image = new(2, 2);
-                    image.LoadImage(File.ReadAllBytes(ImagePath));
-                    if (layers == null)
-                    {
-                        layers = new int[] { 1 };
-                    }
-                    TileImageStuff tileimage = new(image, buffertiles, Size, layers.Length, rendtype);
-
-                    cat.tiles.Add(new LETile(Name, Size, spec, spec2, rendtype, layers, buffertiles, rnd, taglist, tileimage));
-                }
-            }
-            catch (Exception e)
-            {
-                //Debug.LogError("Failed to parse tile! " + line);
-                Debug.LogException(e);
-            }
-        }
-    }
-
-    public void LoadMaterials()
+    /*public void LoadMaterials()
     {
         materialCats = new List<MaterialCategory>();
         var matpath = new DirectoryInfo(Application.streamingAssetsPath + "/Materials/");
@@ -175,7 +92,7 @@ public class GeoEditor : MonoBehaviour, IGridEditor
             materialCats.Add(current);
 
         }
-    }
+    }*/
 
     #endregion
 
@@ -327,13 +244,13 @@ public class GeoEditor : MonoBehaviour, IGridEditor
             }
 
             return true;
-        } else if (typeof(T) == typeof(LETile))
+        } else if (typeof(T) == typeof(LTile))
         {
             throw new ArgumentException("Tiles Not Implemented yet.");
-        } else if(typeof(T) == typeof(Mat))
+        } /*else if(typeof(T) == typeof(Mat))
         {
             throw new ArgumentException("Materials Not Implemented yet.");
-        }
+        }*/
         else
         {
             throw new ArgumentException("obj should be of type GeoType or FeatureType");
@@ -444,6 +361,18 @@ public class GeoEditor : MonoBehaviour, IGridEditor
         public FeatureBundle(FeatureType feature, GameObject gameObject)
         {
             this.feature = feature;
+            this.gameObject = gameObject;
+        }
+    }
+
+    public class TileBundle
+    {
+        public readonly LTile tile;
+        public readonly GameObject gameObject;
+
+        public TileBundle(LTile tile, GameObject gameObject)
+        {
+            this.tile = tile;
             this.gameObject = gameObject;
         }
     }

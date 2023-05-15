@@ -17,6 +17,7 @@ public static class StaticData
     public static readonly Dictionary<FeatureType, Sprite> FeatureSprites = new();
 
     public static GameObject FeaturePrefab;
+    public static GameObject TilePrefab;
 
     public static Dictionary<Category, List<LTile>> TileCategories;
     public static Dictionary<Category, List<Prop>> PropCategories;
@@ -80,6 +81,7 @@ public static class StaticData
         }
         #endregion
 
+        TilePrefab = Resources.Load<GameObject>("tile/tile");
         string[] tileInit = File.ReadAllLines(Path.Combine(Application.streamingAssetsPath, "Tiles", "init.txt"));
         Inits.LoadTilesInit(tileInit);
     }
