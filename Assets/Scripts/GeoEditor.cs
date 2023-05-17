@@ -99,7 +99,7 @@ public class GeoEditor : MonoBehaviour, IGridEditor
     void Start()
     {
         LoadedFile = EditorManager.FileToLoad;
-        EditorManager.FileToLoad = null;
+        //EditorManager.FileToLoad = null; //there's got to be a better way than this, right?
 
         CurrentLevelMatrix = LoadedFile.Geometry;
 
