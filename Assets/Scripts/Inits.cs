@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using static Lingo.LingoParsing;
 using static Lingo.MiddleMan;
@@ -28,7 +29,7 @@ namespace Lingo
                     if (Category.TryParse(arr, out Category cat))
                     {
                         Debug.Log(cat.ToLingoString());
-                        tileCategories.Add(cat, new());
+                        StaticData.TileCategories.Add(cat, new());
                     }
                 }
                 else
@@ -40,6 +41,7 @@ namespace Lingo
                     if (LTile.TryParse(arr, out LTile tile))
                     {
                         Debug.Log(tile.ToLingoString());
+                        StaticData.TileCategories.LastOrDefault().Value.Add(tile);
                         ParseTileImage(tile);
                     }
                 }
@@ -91,29 +93,60 @@ namespace Lingo
             var rawData = File.ReadAllBytes(path);
             tile.texture = new Texture2D(2, 2);
             tile.texture.LoadImage(rawData);
+            tile.texture.filterMode = FilterMode.Point;
 
-            if (tile.type == LTile.Type.voxelStruct)
+            var layerHeight = ((tile.type == LTile.Type.box ? tile.size.y * tile.size.x : 0) + tile.size.y + (tile.bfTiles * 2)) * 20;
+            var top = tile.texture.height;
+            if (tile.type != LTile.Type.box)
             {
-                tile.sprites = new Sprite[tile.repeatL.Length, (int)tile.size.x, (int)tile.size.y];
-                var layerHeight = tile.size.y * 20;
-                var top = tile.texture.height - 1;
+                top--;
+            }
 
-                for (var l = 0; l < tile.repeatL.Length; l++)
+            //-- not needed as it is only used for rendering, also, the current code doesn't account for bfTiles
+            /*
+            tile.renderSprites = new Sprite[tile.repeatL.Length, (int)tile.size.x, (int)tile.size.y];
+            for (var l = 0; l < tile.repeatL.Length; l++)
+            {
+                for (var x = 0; x < tile.size.x; x++)
                 {
-                    for (var x = 0; x < tile.size.x; x++)
+                    for (var y = 0; y < tile.size.y; y++)
                     {
-                        for (var y = 0; y < tile.size.y; y++)
-                        {
-                            var yStart = top - (layerHeight * (l + 1)) + (y * 20);
-                            var xStart = x * 20;
+                        var yStart = top - (layerHeight * (l + 1)) + (y * 20);
+                        var xStart = x * 20;
 
-                            tile.sprites[l, x, y] = Sprite.Create(tile.texture, new Rect(xStart, yStart, 20, 20), new Vector2(0, 0), 20);
-                        }
+                        tile.renderSprites[l, x, y] = Sprite.Create(tile.texture, new Rect(xStart, yStart, 20, 20), new Vector2(0, 1), 20);
                     }
                 }
-
-                tile.icon = Sprite.Create(tile.texture, new Rect(0, top - (tile.repeatL.Length * layerHeight) - 16, 0, 16), new Vector2(0, 0), 16);
             }
+            */
+
+            tile.iconSprites = new Sprite[(int)tile.size.x, (int)tile.size.y];
+            for (var x = 0; x < tile.size.x; x++)
+            {
+                for (var y = 0; y < tile.size.y; y++)
+                {
+                    var rect = new Rect(x * 16, top - ((tile.type == LTile.Type.box ? 1 : tile.repeatL?.Length ?? 1) * layerHeight) - 16 - (y * 16), 16, 16);
+                    for (var rectX = rect.x; rectX < rect.x + rect.width; rectX++)
+                    {
+                        for (var rectY = rect.y; rectY < rect.y + rect.height; rectY++)
+                        {
+                            var color = tile.texture.GetPixel((int)rectX, (int)rectY);
+                            if (color == Color.black)
+                            {
+                                tile.texture.SetPixel((int)rectX, (int)rectY, Color.white);
+                            }
+                            else
+                            {
+                                tile.texture.SetPixel((int)rectX, (int)rectY, default);
+                            }
+                        }
+                    }
+
+                    tile.iconSprites[x, y] = Sprite.Create(tile.texture, rect, new Vector2(0, 1), 16);
+                }
+            }
+
+            tile.texture.Apply();
         }
 
         public static Dictionary<Category, List<LTile>> tileCategories = new();
@@ -124,10 +157,10 @@ namespace Lingo
         {
 #pragma warning disable
             [LingoIndex(0, null)]
-            string name;
+            public string name;
 
             [LingoIndex(1, null)]
-            Color color;
+            public Color color;
 #pragma warning enable
 
             public static bool TryParse(object[] obj, out Category cat)
@@ -169,8 +202,8 @@ namespace Lingo
 
             public Texture2D texture;
             //-- Layer, X, Y
-            public Sprite[,,] sprites;
-            public Sprite icon;
+            public Sprite[,,] renderSprites;
+            public Sprite[,] iconSprites;
 #pragma warning enable
 
             public static bool TryParse(object[] lingoObj, out LTile tile)

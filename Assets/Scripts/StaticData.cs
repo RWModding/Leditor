@@ -19,8 +19,8 @@ public static class StaticData
     public static GameObject FeaturePrefab;
     public static GameObject TilePrefab;
 
-    public static Dictionary<Category, List<LTile>> TileCategories;
-    public static Dictionary<Category, List<Prop>> PropCategories;
+    public static readonly Dictionary<Category, List<LTile>> TileCategories = new();
+    public static readonly Dictionary<Category, List<Prop>> PropCategories = new();
 
     public static void Init()
     {
