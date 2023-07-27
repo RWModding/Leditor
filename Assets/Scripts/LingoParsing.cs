@@ -18,7 +18,7 @@ namespace Lingo
     {
         public static string ToLingoString(this object obj)
         {
-            string format = "{0:#########0.####}";
+            //string format = "{0:#########0.####}";
             switch (obj)
             {
                 case string s: return ToLingoFromString(s);
@@ -157,7 +157,7 @@ namespace Lingo
 
         public static bool TryColorFromLingo(string str, out Color color)
         {
-            color = new Color();
+            color = Color.black;
             if (!str.StartsWith("color")) return false;
             str = str.Substring(5).Trim();
 
