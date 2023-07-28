@@ -2,8 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Lingo;
-using static Lingo.MiddleMan;
 using System;
+using System.Linq;
 
 namespace LevelModel
 {
@@ -25,172 +25,70 @@ namespace LevelModel
 
         public Prop(string saved, PropCategory category)
         {
-            if (LingoParsing.FromLingoString(saved) is not object[] arr)
-                throw new FormatException("Expected an array!");
-
-            var data = new LProp(arr);
+            var data = LingoParser.ParsePropertyList(saved);
 
             Category = category;
-            Name = data.name;
-            Type = ConvertLingoPropType(data.type);
-            Beveled = data.colorTreatment == "bevel";
-            RandomVariant = data.random;
-            Variants = new Sprite[Math.Max(1, data.variations)];
-            Tags = new List<string>(data.tags);
-            Notes = new List<string>(data.tags);
+            Name = data.GetString("nm");
+            Type = ConvertLingoPropType(data.GetString("tp"));
+            Beveled = data.TryGetString("colorTreatment", out var colorTreatment) && colorTreatment == "bevel";
+            RandomVariant = data.TryGetInt("random", out var random) && random > 0;
+            Variants = new Sprite[Math.Max(1, data.TryGetInt("vars", out var vars) ? vars : 1)];
+            Tags = data.GetLinearList("tags").Cast<string>().ToList();
+            Notes = data.GetLinearList("notes").Cast<string>().ToList();
 
-            tileSize = Vector2Int.RoundToInt(data.size);
-            pixelSize = Vector2Int.RoundToInt(data.pixelSize);
+            tileSize = data.TryGetVector2("sz", out var sz) ? Vector2Int.RoundToInt(sz) : Vector2Int.zero;
+            pixelSize = data.TryGetVector2("pxlSize", out var pxlSize) ? Vector2Int.RoundToInt(pxlSize) : Vector2Int.zero;
 
             if (Type == PropType.Rope)
-                RopeParams = new RopeParams(arr);
+                RopeParams = new RopeParams(data);
         }
 
-        private static PropType ConvertLingoPropType(LProp.Type type)
+        private static PropType ConvertLingoPropType(string type)
         {
             return type switch
             {
-                LProp.Type.standard or LProp.Type.variedStandard => PropType.Standard,
-                LProp.Type.soft or LProp.Type.variedSoft or LProp.Type.coloredSoft => PropType.Soft,
-                LProp.Type.simpleDecal or LProp.Type.variedDecal => PropType.Decal,
-                LProp.Type.antimatter => PropType.Antimatter,
-                LProp.Type.rope => PropType.Rope,
-                LProp.Type.@long => PropType.Long,
+                "standard" or "variedStandard" => PropType.Standard,
+                "soft" or "variedSoft" or "coloredSoft" => PropType.Soft,
+                "simpleDecal" or "variedDecal" => PropType.Decal,
+                "antimatter" => PropType.Antimatter,
+                "rope" => PropType.Rope,
+                "long" => PropType.Long,
                 _ => throw new FormatException($"Invalid prop type: {type}"),
             };
-        }
-
-        private class LProp : ILingoData
-        {
-            [LingoIndex(0, "nm")]
-            public string name;
-
-            [LingoIndex(1, "tp")]
-            public Type type;
-
-            [LingoIndex(2, "colorTreatment", skippable: true)]
-            public string colorTreatment;
-
-            [LingoIndex(3, "bevel", skippable: true)] //only read when #colorTreatment == "bevel"
-            public int bevel;
-
-            [LingoIndex(4, "sz", skippable: true)]
-            public Vector2 size;
-
-            [LingoIndex(5, "repeatL", skippable: true)]
-            public int[] repeatL;
-
-            [LingoIndex(6, "depth", skippable: true)]
-            public int depth;
-
-            [LingoIndex(8, "contourExp", skippable: true)]
-            public float contourExp;
-
-            [LingoIndex(9, "selfShade", skippable: true)]
-            public bool selfShade;
-
-            [LingoIndex(10, "highLightBorder", skippable: true)]
-            public float highLightBorder;
-
-            [LingoIndex(11, "depthAffectHilites", skippable: true)]
-            public float depthAffectHighlights;
-
-            [LingoIndex(12, "shadowBorder", skippable: true)]
-            public float shadowBorder;
-
-            [LingoIndex(13, "smoothShading", skippable: true)]
-            public int smoothShading;
-
-            //for variedSoft & variedDecal
-            [LingoIndex(14, "pxlSize", skippable: true)]
-            public Vector2 pixelSize;
-
-            [LingoIndex(15, "vars", skippable: true)]
-            public int variations;
-
-            [LingoIndex(16, "random", skippable: true)]
-            public bool random;
-
-            [LingoIndex(17, "colorize", skippable: true)]
-            public bool colorize;
-
-            [LingoIndex(18, "layerExceptions", skippable: true)]
-            public int[] layerExceptions;
-
-            [LingoIndex(98, "tags")] //these go last
-            public string[] tags;
-
-            [LingoIndex(99, "notes")] //not necessary, but just for fun
-            public string[] notes;
-
-            public LProp(object[] saved)
-            {
-                if (!SyncAllAttributes(this, saved))
-                    throw new FormatException("Failed to parse prop data!");
-            }
-
-            public enum Type
-            {
-                none, //All: #name, type, tags, notes
-                standard, //All + #colorTreatment, #bevel, #sz, #repeatL, #layerExceptions
-                variedStandard, //standard + #vars, #random, #colorize
-                soft, //simpleDecal + #round, #contourExp, #selfShade, #highLightBorder, #depthAffectHilites, #shadowBorder, #smoothShading
-                variedSoft, //soft + #pxlSize, #vars, #random, #colorize
-                coloredSoft, //soft + #pxlSize, #colorize
-                simpleDecal, //All + #depth
-                variedDecal, //simpleDecal + #pxlSize, #vars, #random
-                antimatter, //All + #depth, #contourExp
-                @long, //All + #depth
-                rope //long + segmentLength, collisionDepth, segRad, grav, friction, airFric, stiff, previewColor, previewEvery, edgeDirection, rigid, selfPush, sourcePush
-            }
         }
     }
 
     public class RopeParams
     {
-        [LingoIndex(5, "segmentLength")]
         public int SegmentLength;
-
-        [LingoIndex(6, "collisionDepth")]
         public int CollisionDepth;
-
-        [LingoIndex(7, "segRad")]
         public float SegmentRadius;
-
-        [LingoIndex(8, "grav")]
         public float Gravity;
-
-        [LingoIndex(9, "friction")]
         public float Friction;
-
-        [LingoIndex(10, "airFric")]
         public float AirFriction;
-
-        [LingoIndex(11, "stiff")]
         public float Stiffness;
-
-        [LingoIndex(12, "previewColor")]
         public Color PreviewColor;
-
-        [LingoIndex(13, "previewEvery")]
         public int PreviewInterval;
-
-        [LingoIndex(14, "edgeDirection")]
         public float EdgeDirection;
-
-        [LingoIndex(15, "rigid")]
         public float Rigidity;
-
-        [LingoIndex(16, "selfPush")]
         public float SelfPush;
-
-        [LingoIndex(17, "sourcePush")]
         public float SourcePush;
 
-        public RopeParams(object[] saved)
+        public RopeParams(PropertyList props)
         {
-            if (!SyncAllAttributes(this, saved))
-                throw new FormatException("Failed to parse rope prop params!");
+            SegmentLength = props.GetInt("segmentLength");
+            CollisionDepth = props.GetInt("collisionDepth");
+            SegmentRadius = props.GetFloat("segRad");
+            Gravity = props.GetFloat("grav");
+            Friction = props.GetFloat("friction");
+            AirFriction = props.GetFloat("airFric");
+            Stiffness = props.GetFloat("stiff");
+            PreviewColor = props.GetColor("previewColor");
+            PreviewInterval = props.GetInt("previewEvery");
+            EdgeDirection = props.GetFloat("edgeDirection");
+            Rigidity = props.GetFloat("rigid");
+            SelfPush = props.GetFloat("selfPush");
+            SourcePush = props.GetFloat("sourcePush");
         }
     }
 
@@ -234,37 +132,12 @@ namespace LevelModel
         public Color Color { get; }
         public List<Prop> Props { get; } = new();
 
-        private readonly LCategory data;
-
         public PropCategory(string saved)
         {
-            data = new LCategory(saved);
+            var data = LingoParser.ParseLinearList(saved);
 
-            Name = data.name;
-            Color = data.color;
-        }
-
-        // Helper for parsing tile categorites
-        private class LCategory : ILingoData
-        {
-            public LCategory(string saved)
-            {
-                object obj = LingoParsing.FromLingoString(saved);
-
-                if (obj is not object[] arr)
-                    throw new FormatException("Expected an array!");
-
-                if (!SyncAllAttributes(this, arr))
-                    throw new FormatException("Failed to parse line!");
-            }
-
-#pragma warning disable
-            [LingoIndex(0, null)]
-            public string name;
-
-            [LingoIndex(1, null)]
-            public Color color;
-#pragma warning enable
+            Name = data.GetString(0);
+            Color = data.GetColor(1);
         }
     }
 }

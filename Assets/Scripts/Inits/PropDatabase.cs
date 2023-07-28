@@ -15,6 +15,7 @@ public class PropDatabase : MonoBehaviour
     public string[] InitPaths;
 
     public readonly List<PropCategory> Categories = new();
+    private readonly Dictionary<string, Prop> propsByName = new();
 
     public void Awake()
     {
@@ -63,7 +64,9 @@ public class PropDatabase : MonoBehaviour
                     // Parse prop
                     try
                     {
-                        cat.Props.Add(new Prop(line, cat));
+                        var prop = new Prop(line, cat);
+                        cat.Props.Add(prop);
+                        propsByName[prop.Name] = prop;
                     }
                     catch (Exception e)
                     {
@@ -75,5 +78,16 @@ public class PropDatabase : MonoBehaviour
         }
 
         Debug.Log($"Loaded {Categories.Sum(cat => cat.Props.Count)} props from {Categories.Count} categories");
+    }
+
+    public Prop this[string name]
+    {
+        get
+        {
+            if (!propsByName.TryGetValue(name, out var mat))
+                throw new KeyNotFoundException($"Could not find prop: {name}");
+
+            return mat;
+        }
     }
 }

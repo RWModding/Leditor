@@ -18,7 +18,8 @@ public class TestLevelLoader : MonoBehaviour
             saved: levelText,
             tileDatabase: FindAnyObjectByType<TileDatabase>(),
             materialDatabase: FindAnyObjectByType<MaterialDatabase>(),
-            propDatabase: FindAnyObjectByType<PropDatabase>()
+            propDatabase: FindAnyObjectByType<PropDatabase>(),
+            effectDatabase: FindAnyObjectByType<EffectDatabase>()
         );
 
         Texture2D[] layers = new Texture2D[3];
@@ -52,7 +53,7 @@ public class TestLevelLoader : MonoBehaviour
                     c.r = (byte)(c.r * mul + 127f * (1f - mul));
                     c.g = (byte)(c.g * mul + 127f * (1f - mul));
                     c.b = (byte)(c.b * mul + 127f * (1f - mul));
-                    data[i++] = level.GetGeoCell(new Vector2Int(x, y), z).terrain != LevelModel.GeoType.Air ? c : new Color32(0, 0, 0, 0);
+                    data[i++] = level.GetGeoCell(new(x, y), z).terrain != LevelModel.GeoType.Air ? c : new Color32(0, 0, 0, 0);
                 }
             }
 
@@ -91,6 +92,38 @@ public class TestLevelLoader : MonoBehaviour
                     }
                 }
             }
+        }
+
+        // Effects
+        int effectIndex = 0;
+        foreach (var inst in level.Effects)
+        {
+            var color = Color.HSVToRGB(UnityEngine.Random.value, UnityEngine.Random.value * 0.5f + 0.5f, UnityEngine.Random.value * 0.5f + 0.25f);
+
+            var tex = new Texture2D(level.Width, level.Height, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Point
+            };
+
+            for(int y = 0; y < level.Height; y++)
+            {
+                for(int x = 0; x < level.Width; x++)
+                {
+                    tex.SetPixel(x, level.Height - y - 1, new Color(color.r, color.g, color.b, inst.GetAmount(new(x, y))));
+                }
+            }
+
+            tex.Apply();
+
+            var effectGo = new GameObject($"{inst.Effect.Name} {effectIndex}");
+            var layerSpr = effectGo.AddComponent<SpriteRenderer>();
+            layerSpr.sprite = Sprite.Create(tex, new Rect(0f, 0f, tex.width, tex.height), new Vector2(0f, 1f), 1f);
+            layerSpr.sortingOrder = effectIndex + 6;
+
+            effectGo.transform.parent = transform;
+            effectGo.transform.localPosition = new Vector3(0f, 0f, 0f);
+
+            effectIndex++;
         }
     }
 }

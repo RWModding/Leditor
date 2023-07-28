@@ -17,6 +17,7 @@ public class TileDatabase : MonoBehaviour
     /// A list of tile categories in the order that they appear in Init.txt.
     /// </summary>
     public readonly List<TileCategory> Categories = new();
+    private readonly Dictionary<string, Tile> tilesByName = new();
 
     public void Awake()
     {
@@ -63,7 +64,9 @@ public class TileDatabase : MonoBehaviour
                 // Parse tile
                 try
                 {
-                    cat.Tiles.Add(new Tile(line, cat));
+                    var tile = new Tile(line, cat);
+                    cat.Tiles.Add(tile);
+                    tilesByName[tile.Name] = tile;
                 }
                 catch(Exception e)
                 {
@@ -89,14 +92,10 @@ public class TileDatabase : MonoBehaviour
 
         if (tile.Name != name)
         {
-            if (Categories.SelectMany(c => c.Tiles).FirstOrDefault(t => t.Name == name) is Tile newTile)
-            {
+            if (tilesByName.TryGetValue(name, out var newTile))
                 return newTile;
-            }
             else
-            {
                 throw new ArgumentException($"Missing tile: {name}!");
-            }
         }
 
         return tile;

@@ -16,10 +16,12 @@ namespace LevelModel
         public int Height { get; private set; }
 
         public TileMaterial DefaultMaterial { get; set; }
+        public List<EffectInstance> Effects { get; private set; }
 
         public TileDatabase TileDatabase { get; }
         public MaterialDatabase MaterialDatabase { get; }
         public PropDatabase PropDatabase { get; }
+        public EffectDatabase EffectDatabase { get; }
 
         // Geo
         private byte[] geoTerrain;
@@ -31,13 +33,14 @@ namespace LevelModel
         /// <summary>
         /// Load a level from the contents of its project file.
         /// </summary>
-        public LevelData(string saved, TileDatabase tileDatabase, MaterialDatabase materialDatabase, PropDatabase propDatabase)
+        public LevelData(string saved, TileDatabase tileDatabase, MaterialDatabase materialDatabase, PropDatabase propDatabase, EffectDatabase effectDatabase)
         {
-            string[] lines = saved.Split('\r');
+            string[] lines = saved.Split(new string[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
 
             TileDatabase = tileDatabase;
             MaterialDatabase = materialDatabase;
             PropDatabase = propDatabase;
+            EffectDatabase = effectDatabase;
 
             GeoLoader.Load(this, lines[0]);
             TileLoader.Load(this, lines[1]);
@@ -111,6 +114,10 @@ namespace LevelModel
             visualCells[pos.x + pos.y * Width + layer * Width * Height] = visuals;
         }
 
+        /// <summary>
+        /// Check if a tile can be placed at a location.
+        /// </summary>
+        /// <returns><see langword="true"/> if <paramref name="tile"/> can be placed at this location, <see langword="false"/> otherwise.</returns>
         public bool CanPlaceTile(Vector2Int headPos, int headLayer, Tile tile)
         {
             if (headPos.x < 0 || headPos.y < 0 || headPos.x >= Width || headPos.y >= Width || headLayer < 0 || headLayer >= 3)
@@ -145,6 +152,11 @@ namespace LevelModel
             return true;
         }
 
+        /// <summary>
+        /// Create a tile with its head at the given location.
+        /// </summary>
+        /// <param name="addGeo">Whether to change the level geometry to match this tile.</param>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="headPos"/> or <paramref name="headLayer"/> is outside of the level.</exception>
         public TileInstance PlaceTile(Vector2Int headPos, int headLayer, Tile tile, bool addGeo)
         {
             if (headPos.x < 0 || headPos.y < 0 || headPos.x >= Width || headPos.y >= Width || headLayer < 0 || headLayer >= 3)
@@ -186,6 +198,9 @@ namespace LevelModel
             return inst;
         }
 
+        /// <summary>
+        /// Remove a tile instance from the level.
+        /// </summary>
         public void RemoveTile(TileInstance tile)
         {
             var min = tile.TopLeft;

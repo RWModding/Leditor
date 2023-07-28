@@ -3,12 +3,14 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using LingoIndexAttribute = Lingo.MiddleMan.LingoIndexAttribute;
 
 namespace LevelModel
 {
     public partial class LevelData
     {
+        private PropertyList importedTileData;
+        private PropertyList importedEffectData;
+
         /// <summary>
         /// Loads and saves geometry data.
         /// </summary>
@@ -19,27 +21,30 @@ namespace LevelModel
             /// </summary>
             public static void Load(LevelData level, string saved)
             {
-                ParsedGeoCell[][][] cells = null;
-                MiddleMan.SetValueFromLingo(ref cells, LingoParsing.FromLingoString(saved));
+                LinearList cells = LingoParser.ParseLinearList(saved);
 
-                var w = level.Width = cells.Length;
-                var h = level.Height = cells[0].Length;
+                var w = level.Width = cells.Count;
+                var h = level.Height = cells.GetLinearList(0).Count;
                 var terrain = level.geoTerrain = new byte[w * h * 3];
                 var features = level.geoFeatures;
 
-                for (int x = 0; x < cells.Length; x++)
+                for (int x = 0; x < cells.Count; x++)
                 {
-                    var column = cells[x];
-                    for (int y = 0; y < column.Length; y++)
+                    var column = cells.GetLinearList(x);
+
+                    for (int y = 0; y < column.Count; y++)
                     {
-                        var layers = column[y];
-                        for (int z = 0; z < layers.Length; z++)
+                        var layers = column.GetLinearList(y);
+
+                        for (int z = 0; z < layers.Count; z++)
                         {
-                            var cell = layers[z];
+                            var cell = layers.GetLinearList(z);
+                            var parsedTerrain = cell.GetInt(0);
+                            var parsedFeatures = cell.GetLinearList(1);
 
-                            terrain[x + y * w + z * w * h] = (byte)GetGeoType(cell.terrain);
+                            terrain[x + y * w + z * w * h] = (byte)GetGeoType(parsedTerrain);
 
-                            FeatureFlags flags = GetFeatureFlags(cell.features);
+                            FeatureFlags flags = GetFeatureFlags(parsedFeatures);
                             if (flags != FeatureFlags.None)
                             {
                                 features.Add(new Vector3Int(x, y, z), flags);
@@ -86,12 +91,12 @@ namespace LevelModel
             };
 
             // Generate FeatureFlags from a list of Lingo bit indices
-            private static FeatureFlags GetFeatureFlags(int[] features)
+            private static FeatureFlags GetFeatureFlags(LinearList features)
             {
                 FeatureFlags flags = FeatureFlags.None;
-                for (int i = 0; i < features.Length; i++)
+                for (int i = 0; i < features.Count; i++)
                 {
-                    var feature = features[i];
+                    var feature = features.GetInt(i);
                     if (feature < 0 || feature > featureIndex.Length)
                     {
                         throw new ArgumentException($"Invalid feature type: {feature}");
@@ -123,17 +128,17 @@ namespace LevelModel
             /// </summary>
             public static void Load(LevelData level, string saved)
             {
-                var data = new TileData(saved);
-                var w = data.tlMatrix.Count;
-                var h = data.tlMatrix[0].Count;
+                level.importedTileData = LingoParser.ParsePropertyList(saved);
+                var tlMatrix = level.importedTileData.GetLinearList("tlMatrix");
+                var w = tlMatrix.Count;
+                var h = tlMatrix.GetLinearList(0).Count;
 
                 if (w != level.Width || h != level.Height)
                     throw new FormatException($"Geometry size of {level.Width}x{level.Height} does not match tile size of {w}x{h}!");
 
                 level.visualCells = new VisualCell[w * h * 3];
-                level.DefaultMaterial = level.MaterialDatabase[data.defaultMaterial];
+                level.DefaultMaterial = level.MaterialDatabase[level.importedTileData.GetString("defaultMaterial")];
 
-                var tlMatrix = data.tlMatrix;
                 var tileHeads = new Dictionary<Vector3Int, TileInstance>();
                 var tileBodies = new Dictionary<Vector3Int, List<Vector3Int>>();
 
@@ -145,32 +150,34 @@ namespace LevelModel
                     {
                         for(int x = 0; x < w; x++)
                         {
-                            var tileData = tlMatrix[x][y][layer];
+                            var tile = tlMatrix.GetLinearList(x).GetLinearList(y).GetPropertyList(layer);
                             VisualCell cell;
 
-                            switch(tileData.tp)
+                            switch(tile.GetString("tp"))
                             {
                                 case "material":
-                                    cell = level.MaterialDatabase[tileData.name];
+                                    cell = level.MaterialDatabase[tile.GetString("data")];
                                     break;
 
                                 case "tileHead":
+                                    var tileSpec = tile.GetLinearList("data");
+                                    var tileLoc = tileSpec.GetVector2(0);
                                     cell = tileHeads[new(x, y, layer)] = new TileInstance(
-                                        tile: level.TileDatabase.GetTile(tileData.categoryIndex - 3, tileData.tileIndex - 1, tileData.name),
+                                        tile: level.TileDatabase.GetTile((int)tileLoc.x - 3, (int)tileLoc.y - 1, tileSpec.GetString(1)),
                                         headPos: new Vector2Int(x, y),
                                         headLayer: layer
                                     );
                                     break;
 
                                 case "tileBody":
+                                    var headSpec = tile.GetLinearList("data");
+                                    var headLoc = headSpec.GetVector2(0);
+                                    var headPos = new Vector3Int((int)headLoc.x - 1, (int)headLoc.y - 1, headSpec.GetInt(1) - 1);
+                                    if (!tileBodies.TryGetValue(headPos, out var bodyList))
                                     {
-                                        var headPos = new Vector3Int((int)tileData.headPos.x - 1, (int)tileData.headPos.y - 1, tileData.headLayer - 1);
-                                        if (!tileBodies.TryGetValue(headPos, out var bodyList))
-                                        {
-                                            tileBodies[headPos] = bodyList = new List<Vector3Int>();
-                                        }
-                                        bodyList.Add(new(x, y, layer));
+                                        tileBodies[headPos] = bodyList = new List<Vector3Int>();
                                     }
+                                    bodyList.Add(new(x, y, layer));
 
                                     cell = null;
                                     break;
@@ -200,109 +207,15 @@ namespace LevelModel
                         Debug.LogWarning($"Missing tile head at {pair.Key}!");
                     }
                 }
-            }
 
-            private class TileData : MiddleMan.ILingoData
-            {
-                [LingoIndex(0, "lastKeys")]
-                private KeyValuePair<string, object>[] lastKeys;
-
-                [LingoIndex(1, "Keys")]
-                private KeyValuePair<string, object>[] keys;
-
-                [LingoIndex(2, "workLayer")]
-                private int workLayer;
-
-                [LingoIndex(3, "lstMsPs")]
-                private Vector2 lstMsPs;
-
-                [LingoIndex(4, "tlMatrix")]
-                public List<List<TileCell[]>> tlMatrix;
-
-                [LingoIndex(5, "defaultMaterial")]
-                public string defaultMaterial;
-
-                [LingoIndex(6, "toolType")]
-                private string toolType;
-
-                [LingoIndex(7, "toolData")]
-                private string toolData;
-
-                [LingoIndex(8, "tmPos")]
-                private Vector2 tmPos;
-
-                [LingoIndex(9, "tmSavPosL")]
-                private object[] tmSavPosL;
-
-                [LingoIndex(10, "specialEdit")]
-                private int specialEdit;
-
-                public TileData(string saved)
-                {
-                    if (LingoParsing.FromLingoString(saved) is not object[] lingos)
-                        throw new FormatException("Could not parse tile data!");
-
-                    if(!MiddleMan.SyncAllAttributes(this, lingos))
-                        throw new FormatException("Could not parse tile attributes!");
-
-                    foreach (var column in tlMatrix)
-                    {
-                        foreach (var cell in column)
-                        {
-                            foreach (var layer in cell)
-                            {
-                                try
-                                {
-                                    switch (layer.tp)
-                                    {
-                                        case "default":
-                                            break;
-                                        case "material":
-                                            layer.name = (string)layer.data;
-                                            break;
-                                        case "tileBody":
-                                            var tbData = (object[])layer.data;
-                                            layer.headPos = (Vector2)tbData[0];
-                                            layer.headLayer = int.Parse(tbData[1].ToString());
-                                            break;
-                                        case "tileHead":
-                                            var thData = layer.data as object[];
-                                            Vector2 tileInfo = (Vector2)thData[0];
-                                            layer.categoryIndex = (int)tileInfo.x;
-                                            layer.tileIndex = (int)tileInfo.y;
-                                            layer.name = thData[1].ToString();
-                                            break;
-                                        default:
-                                            throw new FormatException($"Invalid tile type {layer.ToLingoString()}");
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    throw new FormatException($"could not parse data from tile {layer.ToLingoString()}", ex);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            private class TileCell : MiddleMan.ILingoData
-            {
-                [LingoIndex(0, "tp")]
-                public string tp;
-
-                [LingoIndex(1, "data")]
-                public object data;
-
-                public int categoryIndex;
-                public int tileIndex;
-
-                public string name;
-                public Vector2 headPos;
-                public int headLayer;
+                // Unload expensive parts of the imported data that won't be used later
+                level.importedTileData.Set("tlMatrix", "Temporarily Unset");
             }
         }
 
+        /// <summary>
+        /// Loads and saves effect data.
+        /// </summary>
         private static class EffectLoader
         {
             /// <summary>
@@ -310,17 +223,26 @@ namespace LevelModel
             /// </summary>
             public static void Load(LevelData level, string saved)
             {
-                //var data = new EffectData(saved);
-                //var w = data.tlMatrix.Count;
-                //var h = data.tlMatrix[0].Count;
-                //
-                //if (w != level.Width || h != level.Height)
-                //    throw new FormatException($"Geometry size of {level.Width}x{level.Height} does not match tile size of {w}x{h}!");
-            }
+                level.importedEffectData = LingoParser.ParsePropertyList(saved);
 
-            private class EffectData : MiddleMan.ILingoData
-            {
+                var loadedEffects = level.importedEffectData.GetLinearList("effects");
+                level.importedEffectData.Set("effects", "Temporarily Unset");
 
+                level.Effects = new List<EffectInstance>();
+                for(int i = 0; i < loadedEffects.Count; i++)
+                {
+                    try
+                    {
+                        var loadData = loadedEffects.GetPropertyList(i);
+                        var effectType = level.EffectDatabase[loadData.GetString("nm")];
+                        level.Effects.Add(effectType.Instantiate(new(level.Width, level.Height), loadData));
+                    }
+                    catch(Exception e)
+                    {
+                        Debug.LogError($"Failed to load effect {i + 1}!");
+                        Debug.LogException(e);
+                    }
+                }
             }
         }
     }

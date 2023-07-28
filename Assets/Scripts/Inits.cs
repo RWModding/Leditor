@@ -272,7 +272,7 @@ namespace Lingo
             }
         }
 
-        public partial class Prop : ILingoData
+        public class Prop : ILingoData
         {
             [LingoIndex(0, "nm")]
             public string name;
