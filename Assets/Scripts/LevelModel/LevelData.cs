@@ -15,6 +15,11 @@ namespace LevelModel
         public int Width { get; private set; }
         public int Height { get; private set; }
 
+        public int BufferTilesLeft { get; set; }
+        public int BufferTilesRight { get; set; }
+        public int BufferTilesTop { get; set; }
+        public int BufferTilesBottom { get; set; }
+
         public TileMaterial DefaultMaterial { get; set; }
         public List<EffectInstance> Effects { get; private set; }
 
@@ -23,12 +28,62 @@ namespace LevelModel
         public PropDatabase PropDatabase { get; }
         public EffectDatabase EffectDatabase { get; }
 
+        /// <summary>
+        /// The angle of sunlight measured in degrees clockwise from straight up.
+        /// </summary>
+        public float LightAngle
+        {
+            get => lightSettings.GetFloat("lightAngle");
+            set => lightSettings.Set("lightAngle", (Mathf.RoundToInt(value) % 360 + 360) % 360);
+        }
+
+        /// <summary>
+        /// The amount that sunlight moves when going between layers, from 1 to 10.
+        /// </summary>
+        public int LightDistance
+        {
+            get => lightSettings.GetInt("flatness");
+            set => lightSettings.Set("flatness", Mathf.Clamp(value, 1, 10));
+        }
+
+        public bool SunlightEnabled
+        {
+            get => levelOverviewProps.GetInt("light") > 0;
+            set => levelOverviewProps.Set("light", value ? 1 : 0);
+        }
+
+        public int TileSeed
+        {
+            get => levelOverviewProps.GetInt("tileSeed");
+            set => levelOverviewProps.Set("tileSeed", value);
+        }
+
+        public int WaterLevel
+        {
+            get => waterProps.GetInt("waterLevel");
+            set => waterProps.Set("waterLevel", value);
+        }
+
+        public bool WaterInFrontOfTerrain
+        {
+            get => waterProps.GetInt("waterInFront") > 0;
+            set => waterProps.Set("waterInFront", value ? 1 : 0);
+        }
+
+        public List<LevelCamera> Cameras { get; private set; }
+
         // Geo
         private byte[] geoTerrain;
         private readonly Dictionary<Vector3Int, FeatureFlags> geoFeatures = new();
 
         // Tiles
         private VisualCell[] visualCells;
+
+        // Misc settings
+        private readonly PropertyList lightSettings;
+        private readonly PropertyList levelProps;
+        private readonly PropertyList levelOverviewProps;
+        private readonly PropertyList waterProps;
 
         /// <summary>
         /// Load a level from the contents of its project file.
@@ -42,16 +97,28 @@ namespace LevelModel
             PropDatabase = propDatabase;
             EffectDatabase = effectDatabase;
 
+            // Load simple property lists
+            lightSettings = LingoParser.ParsePropertyList(lines[3]);
+            levelProps = LingoParser.ParsePropertyList(lines[4]);
+            levelOverviewProps = LingoParser.ParsePropertyList(lines[5]);
+            waterProps = LingoParser.ParsePropertyList(lines[7]);
+
+            var size = Vector2Int.RoundToInt(levelOverviewProps.GetVector2("size"));
+            Width = size.x;
+            Height = size.y;
+
+            var bufferTiles = levelOverviewProps.GetLinearList("extraTiles");
+            BufferTilesLeft = bufferTiles.GetInt(0);
+            BufferTilesTop = bufferTiles.GetInt(1);
+            BufferTilesRight = bufferTiles.GetInt(2);
+            BufferTilesBottom = bufferTiles.GetInt(3);
+
+            // Load more involved data
             GeoLoader.Load(this, lines[0]);
             TileLoader.Load(this, lines[1]);
             EffectLoader.Load(this, lines[2]);
-
-            var lighting = lines[3];
-            var settings1 = lines[4];
-            var settings2 = lines[5];
-            var cameras = lines[6];
-            var water = lines[7];
-            var props = lines[8];
+            CameraLoader.Load(this, lines[6]);
+            // PropLoader.Load(this, lines[8]);
         }
 
         /// <summary>

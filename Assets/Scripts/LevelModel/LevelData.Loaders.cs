@@ -10,6 +10,8 @@ namespace LevelModel
     {
         private PropertyList importedTileData;
         private PropertyList importedEffectData;
+        private PropertyList importedCameraData;
+        private PropertyList importedPropData;
 
         /// <summary>
         /// Loads and saves geometry data.
@@ -23,8 +25,12 @@ namespace LevelModel
             {
                 LinearList cells = LingoParser.ParseLinearList(saved);
 
-                var w = level.Width = cells.Count;
-                var h = level.Height = cells.GetLinearList(0).Count;
+                var w = cells.Count;
+                var h = cells.GetLinearList(0).Count;
+
+                if (w != level.Width || h != level.Height)
+                    throw new FormatException($"Level size of {level.Width}x{level.Height} does not match geometry size of {w}x{h}!");
+
                 var terrain = level.geoTerrain = new byte[w * h * 3];
                 var features = level.geoFeatures;
 
@@ -134,7 +140,7 @@ namespace LevelModel
                 var h = tlMatrix.GetLinearList(0).Count;
 
                 if (w != level.Width || h != level.Height)
-                    throw new FormatException($"Geometry size of {level.Width}x{level.Height} does not match tile size of {w}x{h}!");
+                    throw new FormatException($"Level size of {level.Width}x{level.Height} does not match tile size of {w}x{h}!");
 
                 level.visualCells = new VisualCell[w * h * 3];
                 level.DefaultMaterial = level.MaterialDatabase[level.importedTileData.GetString("defaultMaterial")];
@@ -242,6 +248,26 @@ namespace LevelModel
                         Debug.LogError($"Failed to load effect {i + 1}!");
                         Debug.LogException(e);
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Loads and saves camera data.
+        /// </summary>
+        private static class CameraLoader
+        {
+            public static void Load(LevelData level, string saved)
+            {
+                level.importedCameraData = LingoParser.ParsePropertyList(saved);
+
+                var cams = level.importedCameraData.GetLinearList("cameras");
+                var quads = level.importedCameraData.GetLinearList("quads");
+
+                level.Cameras = new List<LevelCamera>();
+                for(int i = 0; i < cams.Count; i++)
+                {
+                    level.Cameras.Add(new LevelCamera(cams.GetVector2(i), quads.GetLinearList(i)));
                 }
             }
         }
