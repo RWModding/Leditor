@@ -4,6 +4,7 @@ using System.IO;
 using UnityEngine;
 using LevelModel;
 using System;
+using System.Linq;
 
 public class TestLevelLoader : MonoBehaviour
 {
@@ -126,6 +127,8 @@ public class TestLevelLoader : MonoBehaviour
 
             effectGo.transform.parent = transform;
             effectGo.transform.localPosition = new Vector3(0f, 0f, 0f);
+
+            Debug.Log($"{inst.Effect.Name}: {string.Join(", ", inst.Effect.Options.Select(o => inst.GetOption(o.Name)))}");
 
             effectIndex++;
         }

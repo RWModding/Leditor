@@ -14,6 +14,8 @@ namespace Lingo
     /// </remarks>
     public static class LingoParser
     {
+        public static readonly object Placeholder = new();
+
         private const bool strict = false;
 
         /// <summary>
@@ -67,6 +69,9 @@ namespace Lingo
 
         public static string ToLingoString(object obj)
         {
+            if (obj == Placeholder)
+                throw new ArgumentException($"Could not serialize placeholder!");
+
             return obj switch
             {
                 null => "0",

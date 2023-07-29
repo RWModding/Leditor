@@ -670,9 +670,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ee5569fae2fbea74690c271c8f5f00e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  CsvPaths:
-  - Materials\baseMaterials.csv
-  - Materials\downpourMaterials.csv
+  InitPath: Materials\Init.txt
 --- !u!4 &2116441473
 Transform:
   m_ObjectHideFlags: 0

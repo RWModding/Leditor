@@ -10,50 +10,57 @@ using LevelModel;
 /// </summary>
 public class MaterialDatabase : MonoBehaviour
 {
-    public string[] CsvPaths;
+    public string InitPath;
 
     public readonly List<TileMaterial> Materials = new();
     private readonly Dictionary<string, TileMaterial> materialsByName = new();
 
     public void Awake()
     {
-        if (CsvPaths == null) return;
-
-        foreach(var path in CsvPaths)
+        // Open init file
+        string init;
+        try
         {
-            // Open and parse file
-            try
+            init = File.ReadAllText(Path.Combine(Application.streamingAssetsPath, InitPath));
+        }
+        catch (IOException e)
+        {
+            Debug.LogError("Failed to read Init.txt for materials!");
+            Debug.LogException(e);
+            return;
+        }
+
+        // Load all lines
+        int lineNum = 0;
+        var reader = new StringReader(init);
+        while (reader.ReadLine() is string line)
+        {
+            lineNum++;
+
+            if (string.IsNullOrEmpty(line) || line.StartsWith("--")) continue;
+
+            if (line[0] == '-')
             {
-                string csv = File.ReadAllText(Path.Combine(Application.streamingAssetsPath, path));
-                var reader = new StringReader(csv);
-                int lineNum = 0;
-
-                while(reader.ReadLine() is string line)
-                {
-                    lineNum++;
-
-                    try
-                    {
-                        var mat = new TileMaterial(line);
-                        Materials.Add(mat);
-                        materialsByName.Add(mat.Name, mat);
-                    }
-                    catch(Exception e)
-                    {
-                        Debug.LogError($"Failed to parse material in {path}, line {lineNum}!");
-                        Debug.LogException(e);
-                    }
-                }
+                // Material categories aren't implemented
             }
-            catch (IOException e)
+            else
             {
-                Debug.LogError($"Failed to read materials from {path}!");
-                Debug.LogException(e);
-                return;
+                // Parse material
+                try
+                {
+                    var mat = new TileMaterial(line);
+                    Materials.Add(mat);
+                    materialsByName.Add(mat.Name, mat);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Failed to parse material on line {lineNum}!");
+                    Debug.LogException(e);
+                }
             }
         }
 
-        Debug.Log($"Loaded {Materials.Count} materials from {CsvPaths.Length} files");
+        Debug.Log($"Loaded {Materials.Count} materials");
     }
 
     public TileMaterial this[string name]

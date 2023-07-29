@@ -79,25 +79,14 @@ public class TileDatabase : MonoBehaviour
         Debug.Log($"Loaded {Categories.Sum(cat => cat.Tiles.Count)} tiles from {Categories.Count} categories");
     }
 
-    public Tile GetTile(int categoryIndex, int tileIndex, string name)
+    public Tile this[string name]
     {
-        if (categoryIndex < 0 || categoryIndex >= Categories.Count)
-            throw new ArgumentOutOfRangeException(nameof(categoryIndex), $"Unknown tile category index! Trying to find \"{name}\".");
-
-        var cat = Categories[categoryIndex];
-        if(tileIndex < 0 || tileIndex >= cat.Tiles.Count)
-            throw new ArgumentOutOfRangeException(nameof(categoryIndex), $"Unknown tile index in category \"{cat.Name}\"! Trying to find \"{name}\".");
-
-        var tile = cat.Tiles[tileIndex];
-
-        if (tile.Name != name)
+        get
         {
             if (tilesByName.TryGetValue(name, out var newTile))
                 return newTile;
             else
                 throw new ArgumentException($"Missing tile: {name}!");
         }
-
-        return tile;
     }
 }

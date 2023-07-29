@@ -167,9 +167,9 @@ namespace LevelModel
 
                                 case "tileHead":
                                     var tileSpec = tile.GetLinearList("data");
-                                    var tileLoc = tileSpec.GetVector2(0);
+                                    //var tileLoc = tileSpec.GetVector2(0);
                                     cell = tileHeads[new(x, y, layer)] = new TileInstance(
-                                        tile: level.TileDatabase.GetTile((int)tileLoc.x - 3, (int)tileLoc.y - 1, tileSpec.GetString(1)),
+                                        tile: level.TileDatabase[tileSpec.GetString(1)],
                                         headPos: new Vector2Int(x, y),
                                         headLayer: layer
                                     );
@@ -215,7 +215,7 @@ namespace LevelModel
                 }
 
                 // Unload expensive parts of the imported data that won't be used later
-                level.importedTileData.Set("tlMatrix", "Temporarily Unset");
+                level.importedTileData.SetObject("tlMatrix", LingoParser.Placeholder);
             }
         }
 
@@ -232,21 +232,22 @@ namespace LevelModel
                 level.importedEffectData = LingoParser.ParsePropertyList(saved);
 
                 var loadedEffects = level.importedEffectData.GetLinearList("effects");
-                level.importedEffectData.Set("effects", "Temporarily Unset");
+                level.importedEffectData.SetObject("effects", LingoParser.Placeholder);
 
                 level.Effects = new List<EffectInstance>();
                 for(int i = 0; i < loadedEffects.Count; i++)
                 {
+                    string name = "Unknown";
                     try
                     {
                         var loadData = loadedEffects.GetPropertyList(i);
-                        var effectType = level.EffectDatabase[loadData.GetString("nm")];
+                        name = loadData.GetString("nm");
+                        var effectType = level.EffectDatabase[name];
                         level.Effects.Add(effectType.Instantiate(new(level.Width, level.Height), loadData));
                     }
                     catch(Exception e)
                     {
-                        Debug.LogError($"Failed to load effect {i + 1}!");
-                        Debug.LogException(e);
+                        throw new FormatException($"Failed to load effect {i + 1}: {name}", e);
                     }
                 }
             }
@@ -257,6 +258,9 @@ namespace LevelModel
         /// </summary>
         private static class CameraLoader
         {
+            /// <summary>
+            /// Load camera data from a Lingo string.
+            /// </summary>
             public static void Load(LevelData level, string saved)
             {
                 level.importedCameraData = LingoParser.ParsePropertyList(saved);
@@ -269,6 +273,23 @@ namespace LevelModel
                 {
                     level.Cameras.Add(new LevelCamera(cams.GetVector2(i), quads.GetLinearList(i)));
                 }
+
+                level.importedCameraData.SetObject("cameras", LingoParser.Placeholder);
+            }
+        }
+
+        /// <summary>
+        /// Loads and saves prop data.
+        /// </summary>
+        private static class PropLoader
+        {
+            /// <summary>
+            /// Load prop data from a Lingo string.
+            /// </summary>
+            public static void Load(LevelData level, string saved)
+            {
+                level.importedPropData = LingoParser.ParsePropertyList(saved);
+                
             }
         }
     }

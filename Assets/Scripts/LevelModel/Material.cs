@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Lingo;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -14,14 +15,10 @@ namespace LevelModel
 
         public TileMaterial(string saved)
         {
-            var args = saved.Split(',');
+            var data = LingoParser.ParsePropertyList(saved);
 
-            Name = args[0];
-            Color = new Color(
-                float.Parse(args[2]) / 255f,
-                float.Parse(args[3]) / 255f,
-                float.Parse(args[4]) / 255f
-            );
+            Name = data.GetString("nm");
+            Color = data.GetColor("color");
         }
     }
 }

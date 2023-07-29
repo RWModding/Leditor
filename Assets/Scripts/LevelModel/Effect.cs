@@ -179,7 +179,7 @@ namespace LevelModel
             }
 
             // Save some memory by unloading the matrix
-            data.Set("mtrx", "Temporarily Unset");
+            data.SetObject("mtrx", LingoParser.Placeholder);
         }
 
         public float GetAmount(Vector2Int pos)
@@ -209,12 +209,33 @@ namespace LevelModel
 
         private LinearList FindOption(string name)
         {
-            var opts = data.GetLinearList("options");
-            for (int i = 0; i < opts.Count; i++)
+            var myOptions = data.GetLinearList("options");
+            for (int i = 0; i < myOptions.Count; i++)
             {
-                if(opts.TryGetLinearList(i, out var opt) && opt.TryGetString(0, out var optName) && name == optName)
+                if(myOptions.TryGetLinearList(i, out var opt) && opt.TryGetString(0, out var optName) && name == optName)
                 {
                     return opt;
+                }
+            }
+
+            // Add default value, if it doesn't exist
+            var strOptions = Effect.Options;
+            foreach(var parentOption in strOptions)
+            {
+                if (parentOption.Name == name)
+                {
+                    myOptions.Add(LinearList.Make(parentOption.Name, new LinearList(parentOption.Options), parentOption.Default));
+                    return myOptions.GetLinearList(myOptions.Count - 1);
+                }
+            }
+
+            var intOptions = Effect.IntOptions;
+            foreach(var parentOption in intOptions)
+            {
+                if (parentOption.Name == name)
+                {
+                    myOptions.Add(LinearList.Make(parentOption.Name, new LinearList(), parentOption.Default));
+                    return myOptions.GetLinearList(myOptions.Count - 1);
                 }
             }
 
