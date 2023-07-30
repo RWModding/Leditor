@@ -32,7 +32,7 @@ namespace LevelModel
                     throw new FormatException($"Level size of {level.Width}x{level.Height} does not match geometry size of {w}x{h}!");
 
                 var terrain = level.geoTerrain = new byte[w * h * 3];
-                var features = level.geoFeatures;
+                var features = level.geoFeatures = new();
 
                 for (int x = 0; x < cells.Count; x++)
                 {
@@ -289,7 +289,21 @@ namespace LevelModel
             public static void Load(LevelData level, string saved)
             {
                 level.importedPropData = LingoParser.ParsePropertyList(saved);
-                
+
+                var props = level.importedPropData.GetLinearList("props");
+
+                level.Props = new List<PropInstance>();
+                for (int i = 0; i < props.Count; i++)
+                {
+                    var propData = props.GetLinearList(i);
+                    var prop = level.PropDatabase[propData.GetString(1)];
+                    var propInstance = new PropInstance(prop, propData);
+
+                    level.Props.Add(propInstance);
+                }
+
+                // Clear out imported props from memory after parsing
+                level.importedPropData.SetObject("props", LingoParser.Placeholder);
             }
         }
     }

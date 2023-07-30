@@ -22,6 +22,7 @@ namespace LevelModel
 
         public TileMaterial DefaultMaterial { get; set; }
         public List<EffectInstance> Effects { get; private set; }
+        public List<PropInstance> Props { get; private set; }
 
         public TileDatabase TileDatabase { get; }
         public MaterialDatabase MaterialDatabase { get; }
@@ -74,7 +75,7 @@ namespace LevelModel
 
         // Geo
         private byte[] geoTerrain;
-        private readonly Dictionary<Vector3Int, FeatureFlags> geoFeatures = new();
+        private Dictionary<Vector3Int, FeatureFlags> geoFeatures;
 
         // Tiles
         private VisualCell[] visualCells;
@@ -118,7 +119,7 @@ namespace LevelModel
             TileLoader.Load(this, lines[1]);
             EffectLoader.Load(this, lines[2]);
             CameraLoader.Load(this, lines[6]);
-            // PropLoader.Load(this, lines[8]);
+            PropLoader.Load(this, lines[8]);
         }
 
         /// <summary>

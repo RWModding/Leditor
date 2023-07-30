@@ -15,13 +15,14 @@ namespace LevelModel
         public PropType Type { get; }
         public bool Beveled { get; }
         public int Depth { get; }
+        public int Variants { get; }
         public bool RandomVariant { get; }
         public List<string> Tags { get; }
         public List<string> Notes { get; }
         public RopeParams RopeParams { get; }
 
         private readonly Vector2Int previewSize;
-        private readonly int variantCount;
+        private readonly int[] repeatL;
 
         public Prop(string saved, PropCategory category)
         {
@@ -32,9 +33,20 @@ namespace LevelModel
             Type = ConvertLingoPropType(data.GetString("tp"));
             Beveled = data.TryGetString("colorTreatment", out var colorTreatment) && colorTreatment == "bevel";
             RandomVariant = data.TryGetInt("random", out var random) && random > 0;
-            variantCount = Math.Max(1, data.TryGetInt("vars", out var vars) ? vars : 1);
+            Variants = Math.Max(1, data.TryGetInt("vars", out var vars) ? vars : 1);
             Tags = data.GetLinearList("tags").Cast<string>().ToList();
             Notes = data.GetLinearList("notes").Cast<string>().ToList();
+
+            if (Type == PropType.Standard)
+            {
+                repeatL = data.GetLinearList("repeatL").Cast<int>().ToArray();
+            }
+            else if (Type == PropType.Rope)
+            {
+                RopeParams = new RopeParams(data);
+            }
+
+            Depth = Type == PropType.Standard ? repeatL.Sum() : data.GetInt("depth");
 
             if (data.TryGetVector2("pxlSize", out var pxlSize))
             {
@@ -45,8 +57,7 @@ namespace LevelModel
                 previewSize = Vector2Int.RoundToInt(sz) * 20;
             }
 
-            if (Type == PropType.Rope)
-                RopeParams = new RopeParams(data);
+            previews = new Sprite[Variants];
         }
 
         private static PropType ConvertLingoPropType(string type)
@@ -64,28 +75,96 @@ namespace LevelModel
         }
 
         private Texture2D texture;
+        private Texture2D previewTexture;
         private Sprite[] previews;
-        private Sprite GetPreviewSprite(int variant)
+        public Sprite GetPreviewSprite(int variant)
         {
-            texture ??= LoadTexture();
+            if (previews[variant] is not Sprite spr)
+                previews[variant] = spr = CreatePreviewSprite(variant);
 
-            // rect(prop.sz.locH*20*(v2-1), (c2-1)*prop.sz.locV*20, prop.sz.locH*20*v2, c2*prop.sz.locV*20)+rect(0,1,0,1)
-            throw new NotImplementedException();
+            return spr;
         }
 
-        private Texture2D LoadTexture()
+        private Sprite CreatePreviewSprite(int variant)
+        {
+            // rect(prop.sz.locH*20*(v2-1), (c2-1)*prop.sz.locV*20, prop.sz.locH*20*v2, c2*prop.sz.locV*20)+rect(0,1,0,1)
+            if (texture == null) LoadTexture();
+
+            Rect rect;
+
+            if (previewSize == Vector2Int.zero)
+            {
+                rect = new Rect(0f, 0f, texture.width, texture.height);
+            }
+            else
+            {
+                rect = new Rect(
+                    x: variant * previewSize.x,
+                    y: 0,
+                    width: previewSize.x,
+                    height: previewSize.y
+                );
+            }
+            return Sprite.Create(previewTexture, rect, new Vector2(0f, 1f), 20f);
+        }
+
+        private void LoadTexture()
         {
             var path = Path.Combine(Application.streamingAssetsPath, "Props", Name + ".png");
 
             var rawData = File.ReadAllBytes(path);
-            var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false)
+            texture = new Texture2D(2, 2, TextureFormat.ARGB32, false)
             {
                 filterMode = FilterMode.Point
             };
-            tex.LoadImage(rawData);
+            texture.LoadImage(rawData);
 
-            return tex;
-            // TODO: Is cropping to content necessary?
+            previewTexture = GeneratePreview(texture, previewSize, Variants, repeatL ?? new int[] { 0 });
+        }
+
+        private static Material propPreviewMat;
+        private static Texture2D GeneratePreview(Texture2D image, Vector2Int previewSize, int vars, int[] repeatL)
+        {
+            if(propPreviewMat == null) propPreviewMat = new Material(Shader.Find("Custom/PropPreview"));
+
+            int top = previewSize == Vector2Int.zero ? image.height : image.height - 1;
+            if (previewSize == Vector2Int.zero)
+                previewSize = new Vector2Int(image.width, image.height);
+
+
+            var preview = new Texture2D(previewSize.x * vars, previewSize.y, TextureFormat.ARGB32, false)
+            {
+                filterMode = FilterMode.Point
+            };
+            var rt = RenderTexture.GetTemporary(preview.width, preview.height, 0, RenderTextureFormat.ARGB32);
+
+            // Clear temporary render texture
+            var lastRt = RenderTexture.active;
+            RenderTexture.active = rt;
+            GL.Clear(false, true, Color.clear);
+
+            // Copy all slices of input to the render texture
+            int depth = 0;
+            float srcH = image.height;
+            float maxDepth = Mathf.Max(repeatL.Sum(), 1);
+
+            for (int i = 0; i < repeatL.Length; i++)
+            {
+                propPreviewMat.color = new Color(1f, 1f, 1f, depth / maxDepth);
+                propPreviewMat.SetVector("_SrcRect", new Vector4(0f, (top - preview.height * (i + 1)) / srcH, 1f, preview.height / srcH));
+                depth += repeatL[i];
+
+                Graphics.Blit(image, rt, propPreviewMat);
+            }
+
+            // Save result to non-render texture
+            Graphics.CopyTexture(rt, preview);
+            
+            // Clean up
+            RenderTexture.active = lastRt;
+            RenderTexture.ReleaseTemporary(rt);
+
+            return preview;
         }
     }
 
@@ -158,7 +237,7 @@ namespace LevelModel
             var quadList = saved.GetLinearList(3);
             for(int i = 0; i < 4; i++)
             {
-                Quad[i] = quadList.GetVector2(i);
+                Quad[i] = quadList.GetVector2(i) * 20f / 16f;
             }
             if (quadList.Count > 4)
                 throw new ArgumentException("Prop quad may not be more than 4 points!");
@@ -169,7 +248,7 @@ namespace LevelModel
             CustomColor = settings.TryGetInt("color", out int color) ? color : null;
             Variation = settings.TryGetInt("variation", out int variation) ? variation - 1 : 0;
             CustomDepth = settings.TryGetInt("customDepth", out int customDepth) ? customDepth : -1;
-            RenderOrder = settings.GetInt("renderOrder");
+            RenderOrder = settings.GetInt("renderorder");
             Seed = settings.GetInt("seed");
             PostEffects = settings.GetInt("renderTime") > 0;
         }

@@ -5,6 +5,7 @@ using UnityEngine;
 using LevelModel;
 using System;
 using System.Linq;
+using Unity.VisualScripting;
 
 public class TestLevelLoader : MonoBehaviour
 {
@@ -99,47 +100,50 @@ public class TestLevelLoader : MonoBehaviour
         }
 
         // Effects
-        int effectIndex = 0;
-        foreach (var inst in level.Effects)
         {
-            var color = Color.HSVToRGB(effectIndex / (float)level.Effects.Count, 1f, UnityEngine.Random.value * 0.5f + 0.25f);
+            var effectsGroup = new GameObject("Effects");
+            effectsGroup.transform.parent = transform;
 
-            var tex = new Texture2D(level.Width, level.Height, TextureFormat.RGBA32, false)
+            int effectIndex = 0;
+            foreach (var inst in level.Effects)
             {
-                filterMode = FilterMode.Point
-            };
+                var color = Color.HSVToRGB(effectIndex / (float)level.Effects.Count, 1f, UnityEngine.Random.value * 0.5f + 0.25f);
 
-            for(int y = 0; y < level.Height; y++)
-            {
-                for(int x = 0; x < level.Width; x++)
+                var tex = new Texture2D(level.Width, level.Height, TextureFormat.RGBA32, false)
                 {
-                    tex.SetPixel(x, level.Height - y - 1, new Color(color.r, color.g, color.b, inst.GetAmount(new(x, y))));
+                    filterMode = FilterMode.Point
+                };
+
+                for (int y = 0; y < level.Height; y++)
+                {
+                    for (int x = 0; x < level.Width; x++)
+                    {
+                        tex.SetPixel(x, level.Height - y - 1, new Color(color.r, color.g, color.b, inst.GetAmount(new(x, y))));
+                    }
                 }
+
+                tex.Apply();
+
+                var go = new GameObject($"{inst.Effect.Name} {effectIndex}");
+                var layerSpr = go.AddComponent<SpriteRenderer>();
+                layerSpr.sprite = Sprite.Create(tex, new Rect(0f, 0f, tex.width, tex.height), new Vector2(0f, 1f), 1f);
+                layerSpr.color = new Color(1f, 1f, 1f, 0.4f);
+                layerSpr.sortingOrder = sortingLayer++;
+
+                go.transform.parent = effectsGroup.transform;
+                go.transform.localPosition = new Vector3(0f, 0f, 0f);
+
+                effectIndex++;
             }
-
-            tex.Apply();
-
-            var effectGo = new GameObject($"{inst.Effect.Name} {effectIndex}");
-            var layerSpr = effectGo.AddComponent<SpriteRenderer>();
-            layerSpr.sprite = Sprite.Create(tex, new Rect(0f, 0f, tex.width, tex.height), new Vector2(0f, 1f), 1f);
-            layerSpr.color = new Color(1f, 1f, 1f, 0.4f);
-            layerSpr.sortingOrder = sortingLayer++;
-
-            effectGo.transform.parent = transform;
-            effectGo.transform.localPosition = new Vector3(0f, 0f, 0f);
-
-            Debug.Log($"{inst.Effect.Name}: {string.Join(", ", inst.Effect.Options.Select(o => inst.GetOption(o.Name)))}");
-
-            effectIndex++;
         }
 
         // Cameras
         int camIndex = 0;
         foreach(var cam in level.Cameras)
         {
-            var camGo = new GameObject($"Camera {camIndex}");
-            var ren = camGo.AddComponent<MeshRenderer>();
-            var fil = camGo.AddComponent<MeshFilter>();
+            var go = new GameObject($"Camera {camIndex}");
+            var ren = go.AddComponent<MeshRenderer>();
+            var fil = go.AddComponent<MeshFilter>();
 
             ren.sortingOrder = sortingLayer;
             ren.sharedMaterial = new Material(Shader.Find("Sprites/Default"))
@@ -158,8 +162,8 @@ public class TestLevelLoader : MonoBehaviour
             mesh.SetIndices(new int[] { 0, 1, 2, 3, 0 }, MeshTopology.LineStrip, 0);
             fil.sharedMesh = mesh;
 
-            camGo.transform.parent = transform;
-            camGo.transform.localPosition = new Vector3(0f, 0f, 0f);
+            go.transform.parent = transform;
+            go.transform.localPosition = new Vector3(0f, 0f, 0f);
 
             camIndex++;
         }
@@ -167,9 +171,9 @@ public class TestLevelLoader : MonoBehaviour
 
         // Buffer tiles
         {
-            var camGo = new GameObject($"Buffer Tiles");
-            var ren = camGo.AddComponent<MeshRenderer>();
-            var fil = camGo.AddComponent<MeshFilter>();
+            var go = new GameObject($"Buffer Tiles");
+            var ren = go.AddComponent<MeshRenderer>();
+            var fil = go.AddComponent<MeshFilter>();
 
             ren.sortingOrder = sortingLayer++;
             ren.sharedMaterial = new Material(Shader.Find("Sprites/Default"))
@@ -187,10 +191,54 @@ public class TestLevelLoader : MonoBehaviour
             mesh.SetIndices(new int[] { 0, 1, 2, 3, 0 }, MeshTopology.LineStrip, 0);
             fil.sharedMesh = mesh;
 
-            camGo.transform.parent = transform;
-            camGo.transform.localPosition = new Vector3(0f, 0f, 0f);
+            go.transform.parent = transform;
+            go.transform.localPosition = new Vector3(0f, 0f, 0f);
         }
 
+        // Props
+        {
+            var propsGroup = new GameObject("Props");
+            propsGroup.transform.parent = transform;
+
+            foreach (var propInstance in level.Props)
+            {
+                var spr = propInstance.Prop.GetPreviewSprite(propInstance.Variation);
+
+                var go = new GameObject($"{propInstance.Prop.Name}");
+                var ren = go.AddComponent<MeshRenderer>();
+                var fil = go.AddComponent<MeshFilter>();
+
+                ren.sortingOrder = sortingLayer;
+                ren.sharedMaterial = new Material(Shader.Find("Sprites/Default"))
+                {
+                    color = new Color(1f, 1f, 1f, 1f),
+                    mainTexture = spr.texture
+                };
+
+                Vector2[] uv = spr.uv;
+                Vector3[] verts = new Vector3[uv.Length];
+                Vector2[] quad = propInstance.Quad;
+
+                for(int i = 0; i < uv.Length; i++)
+                {
+                    var t = Rect.PointToNormalized(spr.rect, uv[i] * spr.texture.Size());
+
+                    verts[i] = Vector2.Lerp(Vector2.Lerp(quad[0], quad[1], t.x), Vector2.Lerp(quad[3], quad[2], t.x), t.y)
+                        / new Vector2(20f, -20f);
+                }
+
+                var mesh = new Mesh();
+                mesh.SetVertices(verts);
+                mesh.SetUVs(0, uv);
+                mesh.SetIndices(spr.triangles, MeshTopology.Triangles, 0);
+                fil.sharedMesh = mesh;
+
+                go.transform.parent = propsGroup.transform;
+                go.transform.localPosition = new Vector3(0f, 0f, 0f);
+            }
+        }
+
+        // Misc settings
         Debug.Log(string.Join(", ", level.DefaultMaterial.Name, level.LightAngle, level.LightDistance, level.SunlightEnabled, level.TileSeed, level.WaterInFrontOfTerrain, level.WaterLevel));
     }
 }
