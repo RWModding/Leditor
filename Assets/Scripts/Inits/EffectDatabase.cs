@@ -70,7 +70,7 @@ public class EffectDatabase : MonoBehaviour
             }
         }
 
-        Debug.Log($"Loaded {Categories.Sum(cat => cat.Effects.Count)} effects from {Categories.Count} categories");
+        //Debug.Log($"Loaded {Categories.Sum(cat => cat.Effects.Count)} effects from {Categories.Count} categories");
     }
 
     public Effect this[string name]

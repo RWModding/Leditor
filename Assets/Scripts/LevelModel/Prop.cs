@@ -74,6 +74,19 @@ namespace LevelModel
             };
         }
 
+        public PropInstance Instantiate(LinearList loadData = null)
+        {
+            if (loadData == null)
+                throw new NotImplementedException("Creating new props isn't implemented yet!");
+
+            return Type switch
+            {
+                PropType.Long => new LongPropInstance(this, loadData),
+                PropType.Rope => new RopePropInstance(this, loadData),
+                _ => new RectPropInstance(this, loadData),
+            };
+        }
+
         private Texture2D texture;
         private Texture2D previewTexture;
         private Sprite[] previews;
@@ -212,7 +225,7 @@ namespace LevelModel
         Long
     }
 
-    public class PropInstance
+    public abstract class PropInstance
     {
         public Prop Prop { get; }
         public Vector2[] Quad { get; }
@@ -254,6 +267,15 @@ namespace LevelModel
         }
     }
 
+    public class RectPropInstance : PropInstance
+    {
+        public RectPropInstance(Prop prop, LinearList saved) : base(prop, saved)
+        {
+            if (prop.Type == PropType.Long || prop.Type == PropType.Rope)
+                throw new ArgumentException($"Cannot create a {nameof(RectPropInstance)} from a {prop.Type} prop!");
+        }
+    }
+
     public class LongPropInstance : PropInstance
     {
         public Vector2 Start { get; set; }
@@ -261,6 +283,11 @@ namespace LevelModel
 
         public LongPropInstance(Prop prop, LinearList saved) : base(prop, saved)
         {
+            if (prop.Type != PropType.Long)
+                throw new ArgumentException($"Cannot create a {nameof(LongPropInstance)} from a {prop.Type} prop!");
+
+            Start = (Quad[0] + Quad[3]) / 2f;
+            End = (Quad[1] + Quad[2]) / 2f;
         }
     }
 
@@ -273,6 +300,9 @@ namespace LevelModel
 
         public RopePropInstance(Prop prop, LinearList saved) : base(prop, saved)
         {
+            if (prop.Type != PropType.Rope)
+                throw new ArgumentException($"Cannot create a {nameof(RopePropInstance)} from a {prop.Type} prop!");
+
             Attachment = settings.GetInt("release") switch
             {
                 -1 => RopeAttachment.Right,
@@ -282,6 +312,8 @@ namespace LevelModel
             };
             Thickness = settings.TryGetFloat("thickness", out float thickness) ? thickness : 0f;
             ApplyColor = settings.TryGetInt("applyColor", out int applyColor) && applyColor > 0;
+
+            Points.AddRange(extraData.GetLinearList("points").Cast<Vector2>());
         }
     }
 

@@ -60,7 +60,7 @@ public class MaterialDatabase : MonoBehaviour
             }
         }
 
-        Debug.Log($"Loaded {Materials.Count} materials");
+        //Debug.Log($"Loaded {Materials.Count} materials");
     }
 
     public TileMaterial this[string name]

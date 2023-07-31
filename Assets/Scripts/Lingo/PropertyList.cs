@@ -10,7 +10,7 @@ namespace Lingo
     /// </summary>
     public class PropertyList : IEnumerable<KeyValuePair<string, object>>
     {
-        private readonly Dictionary<string, object> dict = new();
+        private readonly Dictionary<string, object> dict = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<string> keys = new();
 
         public int Count => dict.Count;
@@ -71,7 +71,14 @@ namespace Lingo
         {
             if (dict.Remove(key))
             {
-                keys.Remove(key);
+                for(int i = 0; i < keys.Count; i++)
+                {
+                    if (keys[i].Equals(key, StringComparison.OrdinalIgnoreCase))
+                    {
+                        keys.RemoveAt(i);
+                        break;
+                    }
+                }
                 return true;
             }
             else

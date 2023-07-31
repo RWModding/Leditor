@@ -297,7 +297,7 @@ namespace LevelModel
                 {
                     var propData = props.GetLinearList(i);
                     var prop = level.PropDatabase[propData.GetString(1)];
-                    var propInstance = new PropInstance(prop, propData);
+                    var propInstance = prop.Instantiate(propData);
 
                     level.Props.Add(propInstance);
                 }

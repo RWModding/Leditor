@@ -77,7 +77,7 @@ public class PropDatabase : MonoBehaviour
             }
         }
 
-        Debug.Log($"Loaded {Categories.Sum(cat => cat.Props.Count)} props from {Categories.Count} categories");
+        //Debug.Log($"Loaded {Categories.Sum(cat => cat.Props.Count)} props from {Categories.Count} categories");
     }
 
     public Prop this[string name]

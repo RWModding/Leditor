@@ -76,7 +76,7 @@ public class TileDatabase : MonoBehaviour
             }
         }
 
-        Debug.Log($"Loaded {Categories.Sum(cat => cat.Tiles.Count)} tiles from {Categories.Count} categories");
+        //Debug.Log($"Loaded {Categories.Sum(cat => cat.Tiles.Count)} tiles from {Categories.Count} categories");
     }
 
     public Tile this[string name]

@@ -223,7 +223,7 @@ public class TestLevelLoader : MonoBehaviour
                 {
                     var t = Rect.PointToNormalized(spr.rect, uv[i] * spr.texture.Size());
 
-                    verts[i] = Vector2.Lerp(Vector2.Lerp(quad[0], quad[1], t.x), Vector2.Lerp(quad[3], quad[2], t.x), t.y)
+                    verts[i] = Vector2.Lerp(Vector2.Lerp(quad[3], quad[2], t.x), Vector2.Lerp(quad[0], quad[1], t.x), t.y)
                         / new Vector2(20f, -20f);
                 }
 
@@ -231,6 +231,48 @@ public class TestLevelLoader : MonoBehaviour
                 mesh.SetVertices(verts);
                 mesh.SetUVs(0, uv);
                 mesh.SetIndices(spr.triangles, MeshTopology.Triangles, 0);
+                fil.sharedMesh = mesh;
+
+                go.transform.parent = propsGroup.transform;
+                go.transform.localPosition = new Vector3(0f, 0f, 0f);
+            }
+            sortingLayer++;
+
+            foreach(var propInstance in level.Props)
+            {
+                // Rope and long prop lines
+                Vector2[] points;
+                Color color;
+
+                switch(propInstance)
+                {
+                    case LongPropInstance lp:
+                        points = new Vector2[] { lp.Start, lp.End };
+                        color = Color.red;
+                        break;
+
+                    case RopePropInstance rp:
+                        points = rp.Points.ToArray();
+                        color = rp.Prop.RopeParams.PreviewColor;
+                        break;
+
+                    default:
+                        continue;
+                }
+
+                var go = new GameObject($"{propInstance.Prop.Name} Line");
+                var ren = go.AddComponent<MeshRenderer>();
+                var fil = go.AddComponent<MeshFilter>();
+
+                ren.sortingOrder = sortingLayer;
+                ren.sharedMaterial = new Material(Shader.Find("Sprites/Default"))
+                {
+                    color = color,
+                };
+
+                var mesh = new Mesh();
+                mesh.SetVertices(points.Select(v => new Vector3(v.x, -v.y) / 20f).ToArray());
+                mesh.SetIndices(Enumerable.Range(0, points.Length).ToArray(), MeshTopology.LineStrip, 0);
                 fil.sharedMesh = mesh;
 
                 go.transform.parent = propsGroup.transform;
