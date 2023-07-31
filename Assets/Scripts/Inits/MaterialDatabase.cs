@@ -13,7 +13,7 @@ public class MaterialDatabase : MonoBehaviour
     public string InitPath;
 
     public readonly List<TileMaterial> Materials = new();
-    private readonly Dictionary<string, TileMaterial> materialsByName = new();
+    private readonly Dictionary<string, TileMaterial> materialsByName = new(StringComparer.OrdinalIgnoreCase);
 
     public void Awake()
     {

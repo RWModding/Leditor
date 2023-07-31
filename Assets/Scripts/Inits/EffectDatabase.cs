@@ -11,7 +11,7 @@ public class EffectDatabase : MonoBehaviour
     public string InitPath;
 
     public readonly List<EffectCategory> Categories = new();
-    private readonly Dictionary<string, Effect> effectsByName = new();
+    private readonly Dictionary<string, Effect> effectsByName = new(StringComparer.OrdinalIgnoreCase);
 
     public void Awake()
     {

@@ -17,15 +17,22 @@ public class TileDatabase : MonoBehaviour
     /// A list of tile categories in the order that they appear in Init.txt.
     /// </summary>
     public readonly List<TileCategory> Categories = new();
-    private readonly Dictionary<string, Tile> tilesByName = new();
+    private readonly Dictionary<string, Tile> tilesByName = new(StringComparer.OrdinalIgnoreCase);
 
     public void Awake()
+    {
+        LoadTiles(Path.Combine(Application.streamingAssetsPath, InitPath));
+
+        //Debug.Log($"Loaded {Categories.Sum(cat => cat.Tiles.Count)} tiles from {Categories.Count} categories");
+    }
+
+    private void LoadTiles(string path)
     {
         // Open init file
         string init;
         try
         {
-            init = File.ReadAllText(Path.Combine(Application.streamingAssetsPath, InitPath));
+            init = File.ReadAllText(path);
         }
         catch (IOException e)
         {
@@ -33,6 +40,7 @@ public class TileDatabase : MonoBehaviour
             Debug.LogException(e);
             return;
         }
+        var dirName = Path.GetDirectoryName(path);
 
         // Load all lines
         TileCategory cat = null;
@@ -53,30 +61,28 @@ public class TileDatabase : MonoBehaviour
                     cat = new TileCategory(str);
                     Categories.Add(cat);
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     Debug.LogError($"Failed to load tile category on line {lineNum}!");
                     Debug.LogException(e);
                 }
             }
-            else if(cat != null)
+            else if (cat != null)
             {
                 // Parse tile
                 try
                 {
-                    var tile = new Tile(line, cat);
+                    var tile = new Tile(line, cat, dirName);
                     cat.Tiles.Add(tile);
                     tilesByName[tile.Name] = tile;
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     Debug.LogError($"Failed to load tile on line {lineNum}!");
                     Debug.LogException(e);
                 }
             }
         }
-
-        //Debug.Log($"Loaded {Categories.Sum(cat => cat.Tiles.Count)} tiles from {Categories.Count} categories");
     }
 
     public Tile this[string name]

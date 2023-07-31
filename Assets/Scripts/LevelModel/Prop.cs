@@ -12,6 +12,7 @@ namespace LevelModel
     {
         public PropCategory Category { get; }
         public string Name { get; }
+        public string ImageDir { get; }
         public PropType Type { get; }
         public bool Beveled { get; }
         public int Depth { get; }
@@ -24,18 +25,21 @@ namespace LevelModel
         private readonly Vector2Int previewSize;
         private readonly int[] repeatL;
 
-        public Prop(string saved, PropCategory category)
+        public Prop(string saved, PropCategory category, string imageDir) : this(LingoParser.ParsePropertyList(saved), category, imageDir)
         {
-            var data = LingoParser.ParsePropertyList(saved);
+        }
 
+        public Prop(PropertyList data, PropCategory category, string imageDir)
+        {
             Category = category;
+            ImageDir = imageDir;
             Name = data.GetString("nm");
             Type = ConvertLingoPropType(data.GetString("tp"));
             Beveled = data.TryGetString("colorTreatment", out var colorTreatment) && colorTreatment == "bevel";
             RandomVariant = data.TryGetInt("random", out var random) && random > 0;
             Variants = Math.Max(1, data.TryGetInt("vars", out var vars) ? vars : 1);
-            Tags = data.GetLinearList("tags").Cast<string>().ToList();
-            Notes = data.GetLinearList("notes").Cast<string>().ToList();
+            Tags = data.TryGetLinearList("tags", out var tags) ? tags.Cast<string>().ToList() : new List<string>();
+            Notes = data.TryGetLinearList("notes", out var notes) ? notes.Cast<string>().ToList() : new List<string>();
 
             if (Type == PropType.Standard)
             {
@@ -123,7 +127,7 @@ namespace LevelModel
 
         private void LoadTexture()
         {
-            var path = Path.Combine(Application.streamingAssetsPath, "Props", Name + ".png");
+            var path = Path.Combine(ImageDir, Name + ".png");
 
             var rawData = File.ReadAllBytes(path);
             texture = new Texture2D(2, 2, TextureFormat.ARGB32, false)
@@ -339,6 +343,12 @@ namespace LevelModel
 
             Name = data.GetString(0);
             Color = data.GetColor(1);
+        }
+
+        public PropCategory(string name, Color color)
+        {
+            Name = name;
+            Color = color;
         }
     }
 }

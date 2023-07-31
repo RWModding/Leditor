@@ -15,8 +15,12 @@ namespace LevelModel
     {
         public TileCategory Category { get; }
         public string Name { get; }
+        public string ImageDir { get; }
         public Vector2Int Size { get; }
         public int Layers { get; }
+        public List<string> Tags { get; }
+        public List<string> Notes { get; }
+
         public Texture2D Texture
         {
             get
@@ -43,26 +47,76 @@ namespace LevelModel
         private readonly int[] specs1;
         private readonly int[] specs2;
         private readonly int[] repeatL;
+        private readonly int variants;
 
         /// <summary>
         /// The position of the top left corner of the tile relative to its head.
         /// </summary>
         public Vector2Int TopLeftOffset => (Vector2Int.one - Size) / 2;
 
-        public Tile(string saved, TileCategory category)
+        public Tile(string saved, TileCategory category, string imageDir)
         {
             var data = LingoParser.ParsePropertyList(saved);
 
             Category = category;
             Name = data.GetString("nm");
+            ImageDir = imageDir;
             Size = Vector2Int.FloorToInt(data.GetVector2("sz"));
             Layers = data.GetLinearList("specs2") == null ? 1 : 2;
             type = Enum.Parse<Type>(data.GetString("tp"), true);
             bufferTiles = data.GetInt("bfTiles");
             specs1 = data.GetLinearList("specs").Cast<int>().ToArray();
             specs2 = data.GetLinearList("specs2")?.Cast<int>().ToArray();
+            Tags = data.TryGetLinearList("tags", out var tags) ? tags.Cast<string>().ToList() : new List<string>();
+            Notes = data.TryGetLinearList("notes", out var notes) ? notes.Cast<string>().ToList() : new List<string>();
+            variants = data.GetInt("rnd");
+
             if (data.TryGetLinearList("repeatL", out var reps))
                 repeatL = reps.Cast<int>().ToArray();
+        }
+
+
+        private static readonly HashSet<string> propTags = new(StringComparer.OrdinalIgnoreCase) {
+            "notMegaTrashProp",
+            "effectColorA",
+            "effectColorB",
+            "colored",
+            "customColor",
+            "customColorRainbow",
+            "randomRotat",
+            "randomFlipX",
+            "randomFlipY",
+            "Circular Sign",
+            "Circular Sign B",
+            "Larger Sign",
+            "Larger Sign B",
+            "notTrashProp",
+            "INTERNAL"
+        };
+        public Prop CreateProp(PropCategory category)
+        {
+            if (type != Type.VoxelStruct && type != Type.VoxelStructRandomDisplaceHorizontal && type != Type.VoxelStructRandomDisplaceVertical)
+                return null;
+
+            var data = new PropertyList();
+            data.Set("nm", Name);
+            data.Set("tp", variants > 1 ? "variedStandard" : "standard");
+            data.Set("colorTreatment", "standard");
+            data.Set("sz", Size + bufferTiles * 2 * Vector2.one);
+            data.Set("depth", specs2 == null ? 10 : 20);
+            data.Set("repeatL", new LinearList(repeatL.Cast<object>()));
+
+            if (variants > 1)
+            {
+                data.Set("vars", variants);
+                data.Set("random", 1);
+            }
+
+            data.Set("tags", new LinearList(Tags.Where(propTags.Contains)));
+            data.Set("layerExceptions", new LinearList());
+            data.Set("notes", LinearList.Make("Tile as prop"));
+
+            return new Prop(data, category, ImageDir);
         }
 
         public GeoType? GetGeo(Vector2Int pos, int layer)
