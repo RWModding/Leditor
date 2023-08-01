@@ -314,7 +314,7 @@ namespace Lingo
             if (!TryFloat(xMin, out float xMinF) || !TryFloat(yMin, out float yMinF) || !TryFloat(xMax, out float xMaxF) || !TryFloat(yMax, out float yMaxF))
                 throw new FormatException("All components of a rect must be numeric!");
 
-            return new Rect(xMinF, yMinF, xMaxF, yMaxF);
+            return Rect.MinMaxRect(xMinF, yMinF, xMaxF, yMaxF);
         }
 
         private static bool TryFloat(object obj, out float num)

@@ -38,6 +38,19 @@ namespace Lingo
         public bool TryGetLinearList(int key, out LinearList value) => TryGet(key, out value);
         public bool TryGetPropertyList(int key, out PropertyList value) => TryGet(key, out value);
 
+        public LinearList DeepClone()
+        {
+            var copy = new LinearList();
+            for (int i = 0; i < Count; i++)
+            {
+                var value = this[i];
+                if (value is PropertyList valuePropList) value = valuePropList.DeepClone();
+                else if (value is LinearList valueLinearList) value = valueLinearList.DeepClone();
+                copy.Add(value);
+            }
+
+            return copy;
+        }
 
         private T Get<T>(int key)
         {

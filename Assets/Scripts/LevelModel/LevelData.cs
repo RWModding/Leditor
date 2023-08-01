@@ -143,6 +143,24 @@ namespace LevelModel
             PropLoader.Load(this, lines[8]);
         }
 
+        public string Save()
+        {
+            string[] lines = new string[9];
+
+            lines[3] = LingoParser.ToLingoString(lightSettings);
+            lines[4] = LingoParser.ToLingoString(levelProps);
+            lines[5] = LingoParser.ToLingoString(levelOverviewProps);
+            lines[7] = LingoParser.ToLingoString(waterProps);
+
+            lines[0] = GeoLoader.Save(this);
+            lines[1] = TileLoader.Save(this);
+            lines[2] = EffectLoader.Save(this);
+            lines[6] = CameraLoader.Save(this);
+            lines[8] = PropLoader.Save(this);
+
+            return string.Join('\r', lines);
+        }
+
         private void VersionFix()
         {
             /* 

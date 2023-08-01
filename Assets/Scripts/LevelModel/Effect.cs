@@ -207,6 +207,33 @@ namespace LevelModel
             throw new NotImplementedException();
         }
 
+        public PropertyList Save()
+        {
+            int w = size.x;
+            int h = size.y;
+            var matrix = new LinearList { Capacity = w };
+
+            for (int x = 0; x < w; x++)
+            {
+                var column = new LinearList { Capacity = h };
+
+                for (int y = 0; y < h; y++)
+                {
+                    float amount = amounts[x + y * w];
+
+                    if (amount == 0f) column.Add(0);
+                    else if (amount == 1f) column.Add(100);
+                    else column.Add(amount * 100f);
+                }
+
+                matrix.Add(column);
+            }
+
+            var copy = data.DeepClone();
+            copy.Set("mtrx", matrix);
+            return copy;
+        }
+
         private LinearList FindOption(string name)
         {
             var myOptions = data.GetLinearList("options");

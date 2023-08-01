@@ -171,7 +171,8 @@ public class GeoView : MonoBehaviour
         var data = new Color32[w * h];
 
         var mat = new Color32(255, 255, 255, 255);
-        var tile = new Color32(255, 220, 220, 255);
+        //var tile = new Color32(255, 220, 220, 255);
+        var tile = mat;
 
         int i = 0;
         for(int ty = y + h - 1; ty >= y; ty--)

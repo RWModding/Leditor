@@ -59,6 +59,20 @@ namespace Lingo
         public void Set(string key, LinearList value) => SetObject(key, value);
         public void Set(string key, PropertyList value) => SetObject(key, value);
 
+        public PropertyList DeepClone()
+        {
+            var copy = new PropertyList();
+            foreach(var pair in this)
+            {
+                var value = pair.Value;
+                if (value is PropertyList valuePropList) value = valuePropList.DeepClone();
+                else if (value is LinearList valueLinearList) value = valueLinearList.DeepClone();
+                copy.SetObject(pair.Key, value);
+            }
+
+            return copy;
+        }
+
         public void Clear()
         {
             dict.Clear();

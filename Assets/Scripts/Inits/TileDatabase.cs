@@ -95,4 +95,10 @@ public class TileDatabase : MonoBehaviour
                 throw new ArgumentException($"Missing tile: {name}!");
         }
     }
+
+    public Vector2 GetTileIndex(Tile tile)
+    {
+        // This is rather slow, but shouldn't matter
+        return new Vector2(Categories.IndexOf(tile.Category), tile.Category.Tiles.IndexOf(tile));
+    }
 }

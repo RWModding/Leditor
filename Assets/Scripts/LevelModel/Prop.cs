@@ -180,6 +180,7 @@ namespace LevelModel
         public int CustomDepth { get; set; }
         public int Seed { get; set; }
 
+        private readonly LinearList importedData;
         protected readonly PropertyList extraData;
         protected readonly PropertyList settings;
 
@@ -198,6 +199,7 @@ namespace LevelModel
             if (quadList.Count > 4)
                 throw new ArgumentException("Prop quad may not be more than 4 points!");
 
+            importedData = saved;
             extraData = saved.GetPropertyList(4);
             settings = extraData.GetPropertyList("settings");
 
@@ -207,6 +209,25 @@ namespace LevelModel
             RenderOrder = settings.GetInt("renderorder");
             Seed = settings.GetInt("seed");
             PostEffects = settings.GetInt("renderTime") > 0;
+        }
+
+        public LinearList Save()
+        {
+            importedData[0] = -Depth;
+
+            if (CustomColor is int color) settings.Set("color", color);
+            else settings.Remove("color");
+
+            if (Prop.Variants > 1) settings.Set("variation", Variation);
+
+            if (CustomDepth > -1) settings.Set("customDepth", CustomDepth);
+            else settings.Remove("customDepth");
+
+            settings.Set("renderorder", RenderOrder);
+            settings.Set("seed", Seed);
+            settings.Set("renderTime", PostEffects ? 1 : 0);
+
+            return importedData.DeepClone();
         }
     }
 

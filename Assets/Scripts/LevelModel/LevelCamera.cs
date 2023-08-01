@@ -29,7 +29,7 @@ namespace LevelModel
                     var rad = quadPoint.GetFloat(0) * Mathf.Deg2Rad;
                     // Offset between 0 and 4 tiles
                     var dist = quadPoint.GetFloat(1) * MaxOffsetDistance;
-                    CornerOffsets[i] = new Vector2(Mathf.Sin(rad), Mathf.Cos(rad)) * dist;
+                    CornerOffsets[i] = new Vector2(Mathf.Sin(rad), -Mathf.Cos(rad)) * dist;
                 }
             }
         }

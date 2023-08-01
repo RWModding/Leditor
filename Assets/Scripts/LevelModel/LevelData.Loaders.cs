@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEditor;
 using UnityEngine;
 
 namespace LevelModel
@@ -19,6 +20,8 @@ namespace LevelModel
         /// </summary>
         private static class GeoLoader
         {
+            private const FeatureFlags ShortcutEntranceFeature = (FeatureFlags)0x8;
+
             /// <summary>
             /// Load geometry from a Lingo string.
             /// </summary>
@@ -61,6 +64,46 @@ namespace LevelModel
                 }
             }
 
+            public static string Save(LevelData level)
+            {
+                var terrain = level.geoTerrain;
+                var features = level.geoFeatures;
+                int w = level.Width;
+                int h = level.Height;
+                var matrix = new LinearList { Capacity = w };
+                var noFeatures = new LinearList();
+
+                for (int x = 0; x < w; x++)
+                {
+                    var column = new LinearList { Capacity = h };
+
+                    for(int y = 0; y < h; y++)
+                    {
+                        var layers = new LinearList { Capacity = 3 };
+
+                        for(int z = 0; z < 3; z++)
+                        {
+                            var cell = new LinearList { Capacity = 2 };
+                            GeoType geoType = (GeoType)terrain[x + y * w + z * w * h];
+
+                            cell.Add((int)geoType);
+                            if (features.TryGetValue(new(x, y, z), out var flags) || geoType == GeoType.ShortcutEntrance)
+                                cell.Add(GetFeatureList(flags | (geoType == GeoType.ShortcutEntrance ? ShortcutEntranceFeature : 0)));
+                            else
+                                cell.Add(noFeatures);
+
+                            layers.Add(cell);
+                        }
+
+                        column.Add(layers);
+                    }
+
+                    matrix.Add(column);
+                }
+
+                return LingoParser.ToLingoString(matrix);
+            }
+
             // Convert Lingo geometry index to the corresponding GeoType
             private static GeoType GetGeoType(int index)
             {
@@ -70,48 +113,32 @@ namespace LevelModel
                 return (GeoType)index;
             }
 
-            // Maps Lingo feature indices to FeatureFlags bits
-            private static readonly FeatureFlags[] featureIndex = new FeatureFlags[]
-            {
-                FeatureFlags.None,
-                FeatureFlags.HorizontalBeam,
-                FeatureFlags.VerticalBeam,
-                FeatureFlags.Hive,
-                FeatureFlags.None,
-                FeatureFlags.ShortcutDot,
-                FeatureFlags.None,
-                FeatureFlags.DragonDen,
-                FeatureFlags.None,
-                FeatureFlags.Rock,
-                FeatureFlags.Spear,
-                FeatureFlags.Crack,
-                FeatureFlags.ForbidBats,
-                FeatureFlags.None,
-                FeatureFlags.None,
-                FeatureFlags.None,
-                FeatureFlags.None,
-                FeatureFlags.GarbageHole,
-                FeatureFlags.Waterfall,
-                FeatureFlags.WhackAMoleHole,
-                FeatureFlags.WormGrass,
-                FeatureFlags.ScavengerHole
-            };
-
             // Generate FeatureFlags from a list of Lingo bit indices
             private static FeatureFlags GetFeatureFlags(LinearList features)
             {
                 FeatureFlags flags = FeatureFlags.None;
                 for (int i = 0; i < features.Count; i++)
                 {
-                    var feature = features.GetInt(i);
-                    if (feature < 0 || feature > featureIndex.Length)
-                    {
-                        throw new ArgumentException($"Invalid feature type: {feature}");
-                    }
-                    flags |= featureIndex[feature];
+                    if (i == 4) continue; // Remove shortcut entrances
+
+                    var feature = (FeatureFlags)(1 << (features.GetInt(i) - 1));
+                    flags |= feature;
                 }
 
                 return flags;
+            }
+
+            private static LinearList GetFeatureList(FeatureFlags features)
+            {
+                var res = new LinearList();
+                for(int i = 0; i < 31; i++)
+                {
+                    if(((int)features & (1 << i)) != 0)
+                    {
+                        res.Add(i + 1);
+                    }
+                }
+                return res;
             }
         }
 
@@ -212,6 +239,84 @@ namespace LevelModel
                 // Unload expensive parts of the imported data that won't be used later
                 level.importedTileData.SetObject("tlMatrix", LingoParser.Placeholder);
             }
+
+            public static string Save(LevelData level)
+            {
+                int w = level.Width;
+                int h = level.Height;
+                var visualCells = level.visualCells;
+                var matrix = new LinearList { Capacity = w };
+                var defaultMat = new PropertyList();
+                defaultMat.Set("tp", "default");
+                defaultMat.Set("data", 0);
+
+                for (int x = 0; x < w; x++)
+                {
+                    var column = new LinearList { Capacity = h };
+
+                    for (int y = 0; y < h; y++)
+                    {
+                        var layers = new LinearList { Capacity = 3 };
+
+                        for (int z = 0; z < 3; z++)
+                        {
+                            PropertyList cell;
+                            var vis = visualCells[x + y * w + z * w * h];
+
+                            if(vis == null)
+                            {
+                                cell = defaultMat;
+                            }
+                            else if(vis is TileMaterial mat)
+                            {
+                                var matCell = new PropertyList();
+                                matCell.Set("tp", "material");
+                                matCell.Set("data", mat.Name);
+                                cell = matCell;
+                            }
+                            else if(vis is TileInstance tile)
+                            {
+                                if(tile.HeadPos.x == x && tile.HeadPos.y == y && tile.HeadLayer == z)
+                                {
+                                    var headCell = new PropertyList();
+                                    headCell.Set("tp", "tileHead");
+                                    headCell.Set("data", LinearList.Make(
+                                        level.TileDatabase.GetTileIndex(tile.Tile) + new Vector2(3f, 1f),
+                                        tile.Tile.Name
+                                    ));
+                                    cell = headCell;
+                                }
+                                else
+                                {
+                                    var bodyCell = new PropertyList();
+                                    bodyCell.Set("tp", "tileBody");
+                                    bodyCell.Set("data", LinearList.Make(
+                                        (Vector2)tile.HeadPos + Vector2.one,
+                                        tile.HeadLayer + 1
+                                    ));
+                                    cell = bodyCell;
+                                }
+                            }
+                            else
+                            {
+                                throw new FormatException($"Unknown visual cell type: {vis.GetType().Name}");
+                            }
+
+                            layers.Add(cell);
+                        }
+
+                        column.Add(layers);
+                    }
+
+                    matrix.Add(column);
+                }
+
+                level.importedTileData.Set("tlMatrix", matrix);
+                string saved = LingoParser.ToLingoString(level.importedTileData);
+                level.importedTileData.SetObject("tlMatrix", LingoParser.Placeholder);
+
+                return saved;
+            }
         }
 
         /// <summary>
@@ -245,6 +350,22 @@ namespace LevelModel
                         throw new FormatException($"Failed to load effect {i + 1}: {name}", e);
                     }
                 }
+            }
+
+            public static string Save(LevelData level)
+            {
+                var effects = new LinearList { Capacity = level.Effects.Count };
+
+                foreach(var effect in level.Effects)
+                {
+                    effects.Add(effect.Save());
+                }
+
+                level.importedEffectData.Set("effects", effects);
+                string saved = LingoParser.ToLingoString(level.importedEffectData);
+                level.importedEffectData.SetObject("effects", LingoParser.Placeholder);
+
+                return saved;
             }
         }
 
@@ -285,6 +406,43 @@ namespace LevelModel
                 }
 
                 level.importedCameraData.SetObject("cameras", LingoParser.Placeholder);
+                level.importedCameraData.SetObject("quads", LingoParser.Placeholder);
+            }
+
+            public static string Save(LevelData level)
+            {
+                var cams = new LinearList();
+                var quads = new LinearList();
+
+                foreach(var cam in level.Cameras)
+                {
+                    var quad = new LinearList();
+                    for (int i = 0; i < 4; i++)
+                    {
+                        Vector2 offset = cam.CornerOffsets[i];
+
+                        float rad = 0f;
+                        float dist = 0f;
+                        if(offset != Vector2.zero)
+                        {
+                            rad = Mathf.Atan2(offset.x, -offset.y);
+                            dist = offset.magnitude;
+                        }
+
+                        quad.Add(LinearList.Make(Mathf.RoundToInt(rad * Mathf.Rad2Deg), dist / LevelCamera.MaxOffsetDistance));
+                    }
+
+                    cams.Add(cam.Center - LevelCamera.Size / 2f);
+                    quads.Add(quad);
+                }
+
+                level.importedCameraData.Set("cameras", cams);
+                level.importedCameraData.Set("quads", quads);
+                string saved = LingoParser.ToLingoString(level.importedCameraData);
+                level.importedCameraData.SetObject("cameras", LingoParser.Placeholder);
+                level.importedCameraData.SetObject("quads", LingoParser.Placeholder);
+
+                return saved;
             }
         }
 
@@ -314,6 +472,22 @@ namespace LevelModel
 
                 // Clear out imported props from memory after parsing
                 level.importedPropData.SetObject("props", LingoParser.Placeholder);
+            }
+
+            public static string Save(LevelData level)
+            {
+                var props = new LinearList();
+
+                foreach(var prop in level.Props)
+                {
+                    props.Add(prop.Save());
+                }
+
+                level.importedPropData.Set("props", props);
+                string saved = LingoParser.ToLingoString(level.importedPropData);
+                level.importedPropData.SetObject("props", LingoParser.Placeholder);
+
+                return saved;
             }
         }
     }
