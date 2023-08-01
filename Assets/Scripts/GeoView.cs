@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using LevelModel;
 using System.Linq;
-using Unity.VisualScripting;
 
 public class GeoView : MonoBehaviour
 {
+    public Color[] LayerColors = new Color[3];
     public Material PreviewMaterial;
 
     private LevelEditor editor;
@@ -27,16 +27,22 @@ public class GeoView : MonoBehaviour
         {
             Destroy(child.gameObject);
         }
-
-        var level = editor.LevelData;
-        var chunk = MakeChunk(0, 0, level.Width, level.Height, 0);
-
-        chunk.transform.parent = transform;
     }
 
     private void Refresh()
     {
         Clear();
+
+        var level = editor.LevelData;
+
+        for (int layer = 0; layer < 3; layer++)
+        {
+            var chunk = MakeChunk(0, 0, level.Width, level.Height, layer);
+
+            chunk.transform.parent = transform;
+            chunk.transform.localPosition = new Vector3(0f, 0f, layer);
+            chunk.GetComponent<MeshRenderer>().material.color = LayerColors[layer];
+        }
     }
 
     private GameObject MakeChunk(int startX, int startY, int w, int h, int layer)
@@ -101,6 +107,25 @@ public class GeoView : MonoBehaviour
                         AddQuad(vertices, indices, x, y, endX - x, endY - y);
                         break;
 
+                    case GeoType.Platform:
+                        // Find line of platforms rightwards
+                        endX = x;
+                        while (endX < startX + w
+                            && level.GetGeoCell(new(endX, y), layer).terrain == GeoType.Platform
+                            && !hit[endX - startX + (y - startY) * w])
+                        {
+                            endX++;
+                        }
+
+                        // Hit all
+                        for (int hitX = x; hitX < endX; hitX++)
+                        {
+                            hit[hitX - startX + (y - startY) * w] = true;
+                        }
+
+                        AddQuad(vertices, indices, x, y, endX - x, 0.5f);
+                        break;
+
                     case GeoType.BLSlope:
                         AddTri(vertices, indices, new Vector2(x, y), new Vector2(x + 1, y + 1), new Vector2(x, y + 1));
                         break;
@@ -118,7 +143,7 @@ public class GeoView : MonoBehaviour
                         break;
                 }
 
-                hit[x + y * w] = true;
+                hit[(x - startX) + (y - startY) * w] = true;
             }
         }
 
