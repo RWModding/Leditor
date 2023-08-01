@@ -42,10 +42,11 @@ public class CameraController : MonoBehaviour
 
     public void Zoom(int delta)
     {
-        if (editor.LevelData == null) return;
-
-        int maxZoom = Mathf.CeilToInt(Mathf.Log(Mathf.Max(editor.LevelData.Height, editor.LevelData.Width) * 2f, zoomFac));
-        zoom = Mathf.Clamp(zoom + delta, 8, maxZoom);
+        if (editor.LevelData != null)
+        {
+            int maxZoom = Mathf.CeilToInt(Mathf.Log(Mathf.Max(editor.LevelData.Height, editor.LevelData.Width) * 2f, zoomFac));
+            zoom = Mathf.Clamp(zoom + delta, 8, maxZoom);
+        }
         camera.orthographicSize = Mathf.Pow(zoomFac, zoom);
 
         if(Mathf.Abs(camera.orthographicSize - Mathf.Round(camera.orthographicSize)) < 0.1f)

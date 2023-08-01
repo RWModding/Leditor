@@ -73,7 +73,7 @@ public class TestLevelLoader : MonoBehaviour
             layerGo.transform.localPosition = new Vector3(0f, 0f, 0f);
 
             // Tiles
-            for (int y = 0; y < level.Height; y++)
+            /*for (int y = 0; y < level.Height; y++)
             {
                 for (int x = 0; x < level.Width; x++)
                 {
@@ -95,7 +95,7 @@ public class TestLevelLoader : MonoBehaviour
                         go.transform.localPosition = new Vector3(x, -y, 0f);
                     }
                 }
-            }
+            }*/
             sortingLayer++;
         }
 
@@ -196,7 +196,7 @@ public class TestLevelLoader : MonoBehaviour
         }
 
         // Props
-        {
+        /*{
             var propsGroup = new GameObject("Props");
             propsGroup.transform.parent = transform;
 
@@ -278,7 +278,7 @@ public class TestLevelLoader : MonoBehaviour
                 go.transform.parent = propsGroup.transform;
                 go.transform.localPosition = new Vector3(0f, 0f, 0f);
             }
-        }
+        }*/
 
         // Misc settings
         Debug.Log(string.Join(", ", level.DefaultMaterial.Name, level.LightAngle, level.LightDistance, level.SunlightEnabled, level.TileSeed, level.WaterInFrontOfTerrain, level.WaterLevel));

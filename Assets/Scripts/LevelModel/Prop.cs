@@ -17,11 +17,15 @@ namespace LevelModel
         public bool Beveled { get; }
         public int Depth { get; }
         public int Variants { get; }
+        public int Layers => repeatL?.Length ?? 1;
         public bool RandomVariant { get; }
         public List<string> Tags { get; }
         public List<string> Notes { get; }
         public RopeParams RopeParams { get; }
 
+        public Texture2D Texture => texture == null ? texture = LoadTexture() : texture;
+
+        private Texture2D texture;
         private readonly Vector2Int previewSize;
         private readonly int[] repeatL;
 
@@ -60,8 +64,6 @@ namespace LevelModel
             {
                 previewSize = Vector2Int.RoundToInt(sz) * 20;
             }
-
-            previews = new Sprite[Variants];
         }
 
         private static PropType ConvertLingoPropType(string type)
@@ -91,97 +93,34 @@ namespace LevelModel
             };
         }
 
-        private Texture2D texture;
-        private Texture2D previewTexture;
-        private Sprite[] previews;
-        public Sprite GetPreviewSprite(int variant)
+        public Rect GetSpriteRect(int variant, int layer = 0)
         {
-            if (previews[variant] is not Sprite spr)
-                previews[variant] = spr = CreatePreviewSprite(variant);
-
-            return spr;
-        }
-
-        private Sprite CreatePreviewSprite(int variant)
-        {
-            // rect(prop.sz.locH*20*(v2-1), (c2-1)*prop.sz.locV*20, prop.sz.locH*20*v2, c2*prop.sz.locV*20)+rect(0,1,0,1)
-            if (texture == null) LoadTexture();
-
-            Rect rect;
-
             if (previewSize == Vector2Int.zero)
             {
-                rect = new Rect(0f, 0f, texture.width, texture.height);
+                return new Rect(0f, 0f, Texture.width, Texture.height);
             }
             else
             {
-                rect = new Rect(
+                return new Rect(
                     x: variant * previewSize.x,
-                    y: 0,
+                    y: layer * previewSize.y,
                     width: previewSize.x,
                     height: previewSize.y
                 );
             }
-            return Sprite.Create(previewTexture, rect, new Vector2(0f, 1f), 20f);
         }
 
-        private void LoadTexture()
+        private Texture2D LoadTexture()
         {
             var path = Path.Combine(ImageDir, Name + ".png");
-
             var rawData = File.ReadAllBytes(path);
-            texture = new Texture2D(2, 2, TextureFormat.ARGB32, false)
+            var texture = new Texture2D(2, 2, TextureFormat.ARGB32, false)
             {
                 filterMode = FilterMode.Point
             };
             texture.LoadImage(rawData);
 
-            previewTexture = GeneratePreview(texture, previewSize, Variants, repeatL ?? new int[] { 0 });
-        }
-
-        private static Material propPreviewMat;
-        private static Texture2D GeneratePreview(Texture2D image, Vector2Int previewSize, int vars, int[] repeatL)
-        {
-            if(propPreviewMat == null) propPreviewMat = new Material(Shader.Find("Custom/PropPreview"));
-
-            int top = previewSize == Vector2Int.zero ? image.height : image.height - 1;
-            if (previewSize == Vector2Int.zero)
-                previewSize = new Vector2Int(image.width, image.height);
-
-
-            var preview = new Texture2D(previewSize.x * vars, previewSize.y, TextureFormat.ARGB32, false)
-            {
-                filterMode = FilterMode.Point
-            };
-            var rt = RenderTexture.GetTemporary(preview.width, preview.height, 0, RenderTextureFormat.ARGB32);
-
-            // Clear temporary render texture
-            var lastRt = RenderTexture.active;
-            RenderTexture.active = rt;
-            GL.Clear(false, true, Color.clear);
-
-            // Copy all slices of input to the render texture
-            int depth = 0;
-            float srcH = image.height;
-            float maxDepth = Mathf.Max(repeatL.Sum(), 1);
-
-            for (int i = 0; i < repeatL.Length; i++)
-            {
-                propPreviewMat.color = new Color(1f, 1f, 1f, depth / maxDepth);
-                propPreviewMat.SetVector("_SrcRect", new Vector4(0f, (top - preview.height * (i + 1)) / srcH, 1f, preview.height / srcH));
-                depth += repeatL[i];
-
-                Graphics.Blit(image, rt, propPreviewMat);
-            }
-
-            // Save result to non-render texture
-            Graphics.CopyTexture(rt, preview);
-            
-            // Clean up
-            RenderTexture.active = lastRt;
-            RenderTexture.ReleaseTemporary(rt);
-
-            return preview;
+            return texture;
         }
     }
 

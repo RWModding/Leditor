@@ -2,6 +2,7 @@ using Lingo;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace LevelModel
@@ -112,16 +113,6 @@ namespace LevelModel
 
                 return flags;
             }
-
-            // Helper class for parsing geometry data
-            private struct ParsedGeoCell : MiddleMan.ILingoData
-            {
-                [MiddleMan.LingoIndex(0, null)]
-                public int terrain;
-
-                [MiddleMan.LingoIndex(1, null)]
-                public int[] features;
-            }
         }
 
         /// <summary>
@@ -166,10 +157,14 @@ namespace LevelModel
                                     break;
 
                                 case "tileHead":
-                                    var tileSpec = tile.GetLinearList("data");
-                                    //var tileLoc = tileSpec.GetVector2(0);
+                                    string tileName;
+                                    if(tile.TryGetPropertyList("data", out var tileProps))
+                                        tileName = tileProps.GetString("nm");
+                                    else
+                                        tileName = tile.GetLinearList("data").GetString(1);
+
                                     cell = tileHeads[new(x, y, layer)] = new TileInstance(
-                                        tile: level.TileDatabase[tileSpec.GetString(1)],
+                                        tile: level.TileDatabase[tileName],
                                         headPos: new Vector2Int(x, y),
                                         headLayer: layer
                                     );
@@ -264,9 +259,24 @@ namespace LevelModel
             public static void Load(LevelData level, string saved)
             {
                 level.importedCameraData = LingoParser.ParsePropertyList(saved);
-
-                var cams = level.importedCameraData.GetLinearList("cameras");
-                var quads = level.importedCameraData.GetLinearList("quads");
+                
+                // Load cameras or default
+                if(!level.importedCameraData.TryGetLinearList("cameras", out var cams) || cams == null)
+                {
+                    cams = LinearList.Make(new Vector2(level.Width * 10f - 35f * 20f, level.Height * 10f - 20f * 20f));
+                    level.importedCameraData.Set("cameras", cams);
+                }
+                
+                // Load camera quads or default
+                if (!level.importedCameraData.TryGetLinearList("quads", out var quads) || quads == null)
+                {
+                    quads = new LinearList();
+                    for(int i = 0; i < cams.Count; i++)
+                    {
+                        quads.Add(LinearList.Make(LinearList.Make(0, 0), LinearList.Make(0, 0), LinearList.Make(0, 0), LinearList.Make(0, 0)));
+                    }
+                    level.importedCameraData.Set("quads", quads);
+                }
 
                 level.Cameras = new List<LevelCamera>();
                 for(int i = 0; i < cams.Count; i++)

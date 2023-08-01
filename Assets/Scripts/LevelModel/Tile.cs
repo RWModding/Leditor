@@ -21,26 +21,8 @@ namespace LevelModel
         public List<string> Tags { get; }
         public List<string> Notes { get; }
 
-        public Texture2D Texture
-        {
-            get
-            {
-                if (texture == null) LoadIconSprites();
+        public Texture2D Texture => texture == null ? texture = LoadTexture() : texture;
 
-                return texture;
-            }
-        }
-        public Sprite[,] IconSprites
-        {
-            get
-            {
-                if (iconSprites == null) LoadIconSprites();
-
-                return iconSprites;
-            }
-        }
-
-        private Sprite[,] iconSprites;
         private Texture2D texture;
         private readonly Type type;
         private readonly int bufferTiles;
@@ -141,59 +123,29 @@ namespace LevelModel
                 return null;
         }
 
-        private void LoadIconSprites()
+        public Rect GetPreviewSpriteRect()
         {
-            var path = Path.Combine(Application.streamingAssetsPath, "Tiles", Name + ".png");
-
-            if (!File.Exists(path))
-            {
-                Debug.LogError($"Missing image for tile {Name} at {path}!");
-                texture = Texture2D.whiteTexture;
-                iconSprites = new Sprite[0, 0];
-                return;
-            }
-
-            var rawData = File.ReadAllBytes(path);
-            texture = new Texture2D(2, 2, TextureFormat.RGBA32, false)
-            {
-                filterMode = FilterMode.Point
-            };
-            texture.LoadImage(rawData);
-
-            var layerHeight = ((type == Type.Box ? Size.y * Size.x : 0) + Size.y + (bufferTiles * 2)) * 20;
-            var top = texture.height;
+            int layerHeight = ((type == Type.Box ? Size.y * Size.x : 0) + Size.y + (bufferTiles * 2)) * 20;
+            int top = Texture.height;
             if (type != Type.Box)
             {
                 top--;
             }
 
-            iconSprites = new Sprite[Size.x, Size.y];
-            for (var x = 0; x < Size.x; x++)
+            return new Rect(0, top - ((type == Type.Box ? 1 : repeatL.Length) * layerHeight) - Size.y, Size.x * 16, Size.y * 16);
+        }
+
+        private Texture2D LoadTexture()
+        {
+            var path = Path.Combine(ImageDir, Name + ".png");
+            var rawData = File.ReadAllBytes(path);
+            var texture = new Texture2D(2, 2, TextureFormat.ARGB32, false)
             {
-                for (var y = 0; y < Size.y; y++)
-                {
-                    var rect = new Rect(x * 16, top - ((type == Type.Box ? 1 : repeatL?.Length ?? 1) * layerHeight) - 16 - (y * 16), 16, 16);
-                    for (var rectX = rect.x; rectX < rect.x + rect.width; rectX++)
-                    {
-                        for (var rectY = rect.y; rectY < rect.y + rect.height; rectY++)
-                        {
-                            var color = texture.GetPixel((int)rectX, (int)rectY);
-                            if (color == Color.black)
-                            {
-                                texture.SetPixel((int)rectX, (int)rectY, Color.white);
-                            }
-                            else
-                            {
-                                texture.SetPixel((int)rectX, (int)rectY, Color.clear);
-                            }
-                        }
-                    }
+                filterMode = FilterMode.Point
+            };
+            texture.LoadImage(rawData);
 
-                    iconSprites[x, y] = Sprite.Create(texture, rect, new Vector2(0, 1), 16);
-                }
-            }
-
-            texture.Apply();
+            return texture;
         }
 
         private enum Type

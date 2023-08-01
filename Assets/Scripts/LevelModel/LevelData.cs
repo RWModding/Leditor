@@ -93,6 +93,26 @@ namespace LevelModel
         {
             string[] lines = saved.Split(new string[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
 
+            // Allow loading really old files
+            if (lines.Length < 9)
+            {
+                Array.Resize(ref lines, 9);
+            }
+
+            // The editor doesn't truncate files when saving, so the last lines of the file could be filled with trash data
+            if (lines[6] == null || !lines[6].StartsWith("[#cameras"))
+            {
+                lines[6] = "[#cameras:0, #selectedCamera:0, #quads:0, #keys:[#n:0, #d:0, #e:0, #p:0], #lastKeys:[#n:0, #d:0, #e:0, #p:0]]";
+            }
+            if (lines[7] == null || !lines[7].StartsWith("[#waterLevel"))
+            {
+                lines[7] = "[#waterLevel:-1, #waterInFront:1, #waveLength:60, #waveAmplitude:5, #waveSpeed:10]";
+            }
+            if (lines[8] == null || !lines[8].StartsWith("[#props"))
+            {
+                lines[8] = "[#props:[], #lastKeys:[], #keys:[], #workLayer:1, #lstMsPs:point(0,0), #pmPos:point(1,1), #pmSavPosL:[], #propRotation:0, #propStretchX:1, #propStretchY:1, #propFlipX:1, #propFlipY:1, #depth:0, #color:0]";
+            }
+
             TileDatabase = tileDatabase;
             MaterialDatabase = materialDatabase;
             PropDatabase = propDatabase;
@@ -103,6 +123,7 @@ namespace LevelModel
             levelProps = LingoParser.ParsePropertyList(lines[4]);
             levelOverviewProps = LingoParser.ParsePropertyList(lines[5]);
             waterProps = LingoParser.ParsePropertyList(lines[7]);
+            VersionFix();
 
             var size = Vector2Int.RoundToInt(levelOverviewProps.GetVector2("size"));
             Width = size.x;
@@ -120,6 +141,55 @@ namespace LevelModel
             EffectLoader.Load(this, lines[2]);
             CameraLoader.Load(this, lines[6]);
             PropLoader.Load(this, lines[8]);
+        }
+
+        private void VersionFix()
+        {
+            /* 
+            gLOprops.addProp(#light, 1)
+            gLOprops.addProp(#size, point(52, 40))
+            gLOprops.addProp(#extraTiles, [1,1,1,3])
+            gLOprops.addProp(#tileSeed, random(400))
+            gLOprops.addProp(#colGlows, [0,0])
+            gLOprops.pals = [[#detCol:color(255, 0, 0)]]
+            */
+            if (!levelOverviewProps.ContainsKey("light")) levelOverviewProps.Set("light", 1);
+            if (!levelOverviewProps.ContainsKey("size")) levelOverviewProps.Set("size", new Vector2(52f, 40f));
+            if (!levelOverviewProps.ContainsKey("extraTiles")) levelOverviewProps.Set("extraTiles", LinearList.Make(1, 1, 1, 3));
+            if (!levelOverviewProps.ContainsKey("tileSeed")) levelOverviewProps.Set("tileSeed", 250);
+            if (!levelOverviewProps.ContainsKey("colGlows")) levelOverviewProps.Set("colGlows", LinearList.Make(0, 0));
+            if (!levelOverviewProps.ContainsKey("pals"))
+            {
+                var pals = new PropertyList();
+                pals.Set("detCol", Color.red);
+                levelOverviewProps.Set("pals", LinearList.Make(pals));
+            }
+
+            /*
+            gLEVEL.addProp(#waterDrips, 1)
+            gLEVEL.addProp(#tags, [])
+            gLEVEL.deleteProp(#lightDynamic)
+            gLEVEL.addProp(#lightType, "Static")
+            gLEVEL.deleteProp(#lightBlend)
+            */
+            if (!levelProps.ContainsKey("waterDrips")) levelProps.Set("waterDrips", 1);
+            if (!levelProps.ContainsKey("tags")) levelProps.Set("tags", new LinearList());
+            if (levelProps.ContainsKey("lightDynamic"))
+            {
+                levelProps.Remove("lightDynamic");
+                levelProps.Set("lightType", "Static");
+            }
+            levelProps.Remove("lightBlend");
+
+            // Fix water props
+            if(!waterProps.ContainsKey("waterLevel"))
+            {
+                waterProps.Set("waterLevel", -1);
+                waterProps.Set("waterInFront", 1);
+                waterProps.Set("waveLength", 60);
+                waterProps.Set("waveAmplitude", 5);
+                waterProps.Set("waveSpeed", 10);
+            }
         }
 
         /// <summary>

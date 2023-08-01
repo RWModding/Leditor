@@ -31,7 +31,7 @@ namespace Lingo
 
             if (!tr.AtEnd && strict)
             {
-                throw new FormatException($"Expected end of file, found {tr.Current.type}!");
+                throw new FormatException($"Expected end of file, found {tr.Current}!");
             }
 
             return result;
@@ -178,7 +178,7 @@ namespace Lingo
                         return ReadLinearList(tr);
 
                 default:
-                    throw new FormatException($"Unexpected token: {t.type}");
+                    throw new FormatException($"Unexpected token: {t}");
             }
         }
 
@@ -493,6 +493,11 @@ namespace Lingo
                 {
                     if (this.type != type)
                         throw new FormatException(error);
+                }
+
+                public override string ToString()
+                {
+                    return data != null ? $"{type} ({data.Substring(0, Math.Min(20, data.Length))})" : $"{type}";
                 }
             }
 
