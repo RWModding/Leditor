@@ -49,7 +49,7 @@ public class GeoView : MonoBehaviour
             imageObj.name = $"Layer {i + 1} Image";
             ren.material = LayerMaterial;
             ren.material.mainTexture = cam.targetTexture;
-            ren.sortingOrder = i;
+            ren.sortingOrder = i - 3;
             imageObj.transform.parent = mergedLayers.transform;
             imageObj.transform.localPosition = new Vector3(0f, 0f, i);
 
