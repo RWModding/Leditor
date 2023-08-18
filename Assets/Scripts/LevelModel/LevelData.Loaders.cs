@@ -161,6 +161,7 @@ namespace LevelModel
                     throw new FormatException($"Level size of {level.Width}x{level.Height} does not match tile size of {w}x{h}!");
 
                 level.visualCells = new VisualCell[w * h * 3];
+                level.tiles = new();
                 level.DefaultMaterial = level.MaterialDatabase[level.importedTileData.GetString("defaultMaterial")];
 
                 var tileHeads = new Dictionary<Vector3Int, TileInstance>();
@@ -229,6 +230,8 @@ namespace LevelModel
                         {
                             level.visualCells[bodyPos.x + bodyPos.y * w + bodyPos.z * w * h] = tile;
                         }
+
+                        level.tiles.Add(tile);
                     }
                     else
                     {
@@ -311,6 +314,7 @@ namespace LevelModel
                     matrix.Add(column);
                 }
 
+                level.importedTileData.Set("defaultMaterial", level.DefaultMaterial.Name);
                 level.importedTileData.Set("tlMatrix", matrix);
                 string saved = LingoParser.ToLingoString(level.importedTileData);
                 level.importedTileData.SetObject("tlMatrix", LingoParser.Placeholder);

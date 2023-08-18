@@ -1,16 +1,16 @@
-Shader "Custom/PropPreview"
+Shader "Custom/TilePreview"
 {
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
-        _Color ("Color", Color) = (1.0, 1.0, 1.0, 0.5)
+        _Color ("Color", Color) = (1.0, 1.0, 1.0, 1.0)
         _SrcRect ("Source Rect", Vector) = (0.0, 0.0, 1.0, 1.0)
     }
     SubShader
     {
         Tags { "RenderType"="TransparentCutout" "Queue"="AlphaTest"}
         LOD 100
-        Blend OneMinusDstAlpha DstAlpha
+        Blend SrcAlpha OneMinusSrcAlpha
 
         Pass
         {
@@ -50,6 +50,7 @@ Shader "Custom/PropPreview"
                 fixed4 col = tex2D(_MainTex, i.uv);
                 if (all(col.rgb == 1.0)) discard;
 
+                col.a = _Color.a;
                 return col;
             }
             ENDCG

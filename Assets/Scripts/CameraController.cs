@@ -9,27 +9,28 @@ public class CameraController : MonoBehaviour
 {
     private static readonly float zoomFac = Mathf.Pow(2f, 1f / 4f);
 
-    private LevelEditor editor;
-    private new Camera camera;
-    private int zoom = Mathf.CeilToInt(Mathf.Log(20f, zoomFac));
+    private LevelLoader _editor;
+    private Camera _camera;
+    private int _zoom = Mathf.CeilToInt(Mathf.Log(20f, zoomFac));
 
     void Awake()
     {
-        editor = GetComponentInParent<LevelEditor>();
-        camera = GetComponent<Camera>();
+        _editor = GetComponentInParent<LevelLoader>();
+        _camera = GetComponent<Camera>();
         Zoom(0);
-    }
-
-    public void OnLevelLoaded()
-    {
     }
 
     public void Update()
     {
-        if (editor.LevelData == null) return;
+        RestrictToLevel();
+    }
 
-        var camSize = new Vector2(camera.orthographicSize * camera.aspect, camera.orthographicSize);
-        var geoSize = new Vector2(editor.LevelData.Width, editor.LevelData.Height);
+    private void RestrictToLevel()
+    {
+        if (_editor.LevelData == null) return;
+
+        var camSize = new Vector2(_camera.orthographicSize * _camera.aspect, _camera.orthographicSize);
+        var geoSize = new Vector2(_editor.LevelData.Width, _editor.LevelData.Height);
 
         var min = -camSize + Vector2.one;
         var max = geoSize + camSize - Vector2.one;
@@ -42,16 +43,16 @@ public class CameraController : MonoBehaviour
 
     public void Zoom(int delta)
     {
-        if (editor.LevelData != null)
+        if (_editor.LevelData != null)
         {
-            int maxZoom = Mathf.CeilToInt(Mathf.Log(Mathf.Max(editor.LevelData.Height, editor.LevelData.Width) * 2f, zoomFac));
-            zoom = Mathf.Clamp(zoom + delta, 8, maxZoom);
+            int maxZoom = Mathf.CeilToInt(Mathf.Log(Mathf.Max(_editor.LevelData.Height, _editor.LevelData.Width) * 2f, zoomFac));
+            _zoom = Mathf.Clamp(_zoom + delta, 8, maxZoom);
         }
-        camera.orthographicSize = Mathf.Pow(zoomFac, zoom);
+        _camera.orthographicSize = Mathf.Pow(zoomFac, _zoom);
 
-        if(Mathf.Abs(camera.orthographicSize - Mathf.Round(camera.orthographicSize)) < 0.1f)
+        if(Mathf.Abs(_camera.orthographicSize - Mathf.Round(_camera.orthographicSize)) < 0.1f)
         {
-            camera.orthographicSize = Mathf.Round(camera.orthographicSize);
+            _camera.orthographicSize = Mathf.Round(_camera.orthographicSize);
         }
     }
 }

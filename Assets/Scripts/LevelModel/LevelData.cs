@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace LevelModel
@@ -15,14 +16,31 @@ namespace LevelModel
         public int Width { get; private set; }
         public int Height { get; private set; }
 
-        public int BufferTilesLeft { get; set; }
-        public int BufferTilesRight { get; set; }
-        public int BufferTilesTop { get; set; }
-        public int BufferTilesBottom { get; set; }
+        public int BufferTilesLeft
+        {
+            get => bufferTiles.GetInt(0);
+            set => bufferTiles[0] = value;
+        }
+        public int BufferTilesTop
+        {
+            get => bufferTiles.GetInt(1);
+            set => bufferTiles[1] = value;
+        }
+        public int BufferTilesRight
+        {
+            get => bufferTiles.GetInt(2);
+            set => bufferTiles[2] = value;
+        }
+        public int BufferTilesBottom
+        {
+            get => bufferTiles.GetInt(3);
+            set => bufferTiles[3] = value;
+        }
 
         public TileMaterial DefaultMaterial { get; set; }
         public List<EffectInstance> Effects { get; private set; }
         public List<PropInstance> Props { get; private set; }
+        public IEnumerable<TileInstance> Tiles => tiles.AsReadOnly();
 
         public TileDatabase TileDatabase { get; }
         public MaterialDatabase MaterialDatabase { get; }
@@ -79,12 +97,14 @@ namespace LevelModel
 
         // Tiles
         private VisualCell[] visualCells;
+        private List<TileInstance> tiles;
 
         // Misc settings
         private readonly PropertyList lightSettings;
         private readonly PropertyList levelProps;
         private readonly PropertyList levelOverviewProps;
         private readonly PropertyList waterProps;
+        private readonly LinearList bufferTiles;
 
         /// <summary>
         /// Load a level from the contents of its project file.
@@ -129,7 +149,7 @@ namespace LevelModel
             Width = size.x;
             Height = size.y;
 
-            var bufferTiles = levelOverviewProps.GetLinearList("extraTiles");
+            bufferTiles = levelOverviewProps.GetLinearList("extraTiles");
             BufferTilesLeft = bufferTiles.GetInt(0);
             BufferTilesTop = bufferTiles.GetInt(1);
             BufferTilesRight = bufferTiles.GetInt(2);
@@ -159,6 +179,83 @@ namespace LevelModel
             lines[8] = PropLoader.Save(this);
 
             return string.Join('\r', lines);
+        }
+
+        public void Resize(Vector2Int size, Vector2Int offset)
+        {
+            if (Width == size.x && Height == size.y
+                && offset.x == 0 && offset.y == 0) return;
+
+            var pixelOffset = (Vector2)offset * 20f;
+
+            // Terrain
+            var oldSize = new Vector2Int(Width, Height);
+            Utils.Resize3DArray(ref geoTerrain, oldSize, size, offset, 3);
+
+            var oldFeatures = geoFeatures.ToList();
+            geoFeatures.Clear();
+            foreach(var pair in oldFeatures)
+            {
+                geoFeatures.Add(pair.Key + new Vector3Int(offset.x, offset.y), pair.Value);
+            }
+
+            // Tiles
+            var shiftedTiles = new Dictionary<TileInstance, TileInstance>();
+            Utils.Resize3DArray(ref visualCells, oldSize, size, offset, 3);
+            for(int i = 0; i < visualCells.Length; i++)
+            {
+                if (visualCells[i] is TileInstance tile)
+                {
+                    if (!shiftedTiles.TryGetValue(tile, out var shiftedTile))
+                    {
+                        var newTile = new TileInstance(tile.Tile, tile.HeadPos + offset, tile.HeadLayer);
+                        if(newTile.HeadPos.x < 0 || newTile.HeadPos.y < 0 || newTile.HeadPos.x >= Width || newTile.HeadPos.y >= Height)
+                        {
+                            newTile = null;
+                        }
+                        shiftedTiles[tile] = shiftedTile = newTile;
+                    }
+
+                    visualCells[i] = shiftedTile;
+                }
+            }
+
+            // Effects
+            foreach(var effect in Effects)
+            {
+                effect.Resize(size, offset);
+            }
+
+            // Props
+            foreach(var prop in Props)
+            {
+                for (int i = 0; i < 4; i++)
+                    prop.Quad[i] += (Vector2)offset * 20f;
+                
+                if(prop is LongPropInstance longProp)
+                {
+                    longProp.Start += pixelOffset;
+                    longProp.End += pixelOffset;
+                }
+
+                if(prop is RopePropInstance ropeProp)
+                {
+                    for(int i = 0; i < ropeProp.Points.Count; i++)
+                    {
+                        ropeProp.Points[i] += pixelOffset;
+                    }
+                }
+            }
+
+            // Resize misc settings
+            if(WaterLevel > -1)
+            {
+                WaterLevel = Math.Max(-1, WaterLevel + size.y - oldSize.y + offset.y);
+            }
+            levelOverviewProps.Set("size", (Vector2)size);
+
+            Width = size.x;
+            Height = size.y;
         }
 
         private void VersionFix()
@@ -224,8 +321,18 @@ namespace LevelModel
 
             return new GeoCell(
                 (GeoType)geoTerrain[pos.x + pos.y * Width + layer * Width * Height],
-                geoFeatures.TryGetValue(new Vector3Int(pos.x, pos.y, layer), out var flags) ? flags : FeatureFlags.None
+                GetGeoCellFeatures(pos, layer)
             );
+        }
+
+        /// <summary>
+        /// Gets the features of level geometry at a point.
+        /// </summary>
+        /// <returns>The features of the geometry cell, or none if the point is out of bounds.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public FeatureFlags GetGeoCellFeatures(Vector2Int pos, int layer)
+        {
+            return geoFeatures.TryGetValue(new Vector3Int(pos.x, pos.y, layer), out var flags) ? flags : FeatureFlags.None;
         }
 
         /// <summary>
@@ -351,6 +458,8 @@ namespace LevelModel
                 }
             }
 
+            tiles.Add(inst);
+
             return inst;
         }
 
@@ -359,6 +468,9 @@ namespace LevelModel
         /// </summary>
         public void RemoveTile(TileInstance tile)
         {
+            if (!tiles.Remove(tile))
+                throw new ArgumentException("Cannot remove a tile that is not part of the level!", nameof(tile));
+
             var min = tile.TopLeft;
             for (int z = tile.HeadLayer; z < tile.HeadLayer + tile.Tile.Layers; z++)
             {

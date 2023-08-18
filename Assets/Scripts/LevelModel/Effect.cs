@@ -204,7 +204,8 @@ namespace LevelModel
 
         public void Resize(Vector2Int size, Vector2Int offset)
         {
-            throw new NotImplementedException();
+            Utils.Resize3DArray(ref amounts, this.size, size, offset, 1);
+            this.size = size;
         }
 
         public PropertyList Save()

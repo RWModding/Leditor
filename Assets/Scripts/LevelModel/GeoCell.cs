@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace LevelModel
@@ -17,13 +19,29 @@ namespace LevelModel
             this.features = features;
         }
 
-        public bool HasFeature(FeatureFlags feature) => features.HasFlag(feature);
+        public override readonly bool Equals(object obj)
+        {
+            return obj is GeoCell cell &&
+                   terrain == cell.terrain &&
+                   features == cell.features;
+        }
+
+        public override readonly int GetHashCode()
+        {
+            return HashCode.Combine(terrain, features);
+        }
+
+        public static bool operator ==(GeoCell lhs, GeoCell rhs) => lhs.Equals(rhs);
+        public static bool operator !=(GeoCell lhs, GeoCell rhs) => !(lhs == rhs);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool HasFeature(FeatureFlags feature) => (features & feature) != 0;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetFeature(FeatureFlags feature, bool state)
         {
-            if (state)
-                features &= ~feature;
-            else
-                features |= feature;
+            if (state) features &= ~feature;
+            else features |= feature;
         }
     }
 
