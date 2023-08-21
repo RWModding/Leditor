@@ -112,16 +112,24 @@ public class GeoView : MonoBehaviour
             _chunkParent.parent = transform;
         }
 
-        for (int layer = 0; layer < 3; layer++)
-        {
-            var chunkObj = new GameObject($"Chunk {layer + 1}", typeof(GeoViewChunk));
-            chunkObj.transform.parent = _chunkParent;
+        const int maxSize = 256;
 
-            var chunk = chunkObj.GetComponent<GeoViewChunk>();
-            chunk.LevelRect = new RectInt(0, 0, level.Width, level.Height);
-            chunk.Layer = layer;
-            chunk.Level = level;
-            chunk.GeoMaterial = GeoMaterial;
+        for(int y = 0; y < level.Height; y += maxSize)
+        {
+            for (int x = 0; x < level.Width; x += maxSize)
+            {
+                for (int layer = 0; layer < 3; layer++)
+                {
+                    var chunkObj = new GameObject($"Chunk {x} {y} {layer + 1}", typeof(GeoViewChunk));
+                    chunkObj.transform.parent = _chunkParent;
+
+                    var chunk = chunkObj.GetComponent<GeoViewChunk>();
+                    chunk.LevelRect = new RectInt(x, y, Math.Min(level.Width - x, maxSize), Math.Min(level.Height - y, maxSize));
+                    chunk.Layer = layer;
+                    chunk.Level = level;
+                    chunk.GeoMaterial = GeoMaterial;
+                }
+            }
         }
     }
 

@@ -196,6 +196,7 @@ namespace LevelModel
                                         headPos: new Vector2Int(x, y),
                                         headLayer: layer
                                     );
+
                                     break;
 
                                 case "tileBody":
@@ -230,14 +231,14 @@ namespace LevelModel
                         {
                             level.visualCells[bodyPos.x + bodyPos.y * w + bodyPos.z * w * h] = tile;
                         }
-
-                        level.tiles.Add(tile);
                     }
                     else
                     {
                         Debug.LogWarning($"Missing tile head at {pair.Key}!");
                     }
                 }
+
+                level.tiles.AddRange(tileHeads.Values);
 
                 // Unload expensive parts of the imported data that won't be used later
                 level.importedTileData.SetObject("tlMatrix", LingoParser.Placeholder);

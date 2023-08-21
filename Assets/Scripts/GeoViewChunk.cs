@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 public class GeoViewChunk : MonoBehaviour
@@ -15,6 +16,7 @@ public class GeoViewChunk : MonoBehaviour
     private Mesh _geoMesh;
     private Dictionary<TileInstance, SpriteRenderer> _tiles = new();
     private GameObject _geo;
+    private static Texture2D _greenTex;
 
     public void Awake()
     {
@@ -32,8 +34,14 @@ public class GeoViewChunk : MonoBehaviour
         _geo.transform.parent = transform;
         _geo.GetComponent<MeshFilter>().sharedMesh = _geoMesh;
 
-        var renderer = _geo.GetComponent<MeshRenderer>();
-        renderer.sharedMaterial = GeoMaterial;
+        if(_greenTex == null)
+        {
+            _greenTex = new Texture2D(4, 4, TextureFormat.ARGB32, false);
+            var pixels = new Color32[_greenTex.width * _greenTex.height];
+            Array.Fill(pixels, new Color32(0, 255, 0, 255));
+            _greenTex.SetPixels32(pixels);
+            _greenTex.Apply();
+        }
     }
 
     public void OnLevelViewRefreshed(RectInt rect)
@@ -67,9 +75,9 @@ public class GeoViewChunk : MonoBehaviour
         var indices = new List<int>();
         var hit = new bool[w * h];
 
-        var geoRenderer = _geo.GetComponent<Renderer>();
-        geoRenderer.material = GeoMaterial;
-        geoRenderer.material.mainTexture = GetGeoTexture(level, xMin, yMin, w, h, layer);
+        var renderer = _geo.GetComponent<MeshRenderer>();
+        renderer.sharedMaterial = GeoMaterial;
+        renderer.sharedMaterial.mainTexture = _greenTex;
         _geo.layer = gameObject.layer;
 
         // Add solid tiles, slopes, and floors
@@ -79,13 +87,13 @@ public class GeoViewChunk : MonoBehaviour
             {
                 if (hit[x - xMin + (y - yMin) * w]) continue;
 
-                switch (level.GetGeoCell(new(x, y), layer).terrain)
+                switch (GetRenderTerrain(level, x, y, layer))
                 {
                     case GeoType.Solid:
                         // Find line of terrain rightwards
                         int endX = x;
                         while (endX < xMin + w
-                            && level.GetGeoCell(new(endX, y), layer).terrain == GeoType.Solid
+                            && GetRenderTerrain(level, endX, y, layer) == GeoType.Solid
                             && !hit[endX - xMin + (y - yMin) * w])
                         {
                             endX++;
@@ -98,7 +106,7 @@ public class GeoViewChunk : MonoBehaviour
                             bool rowSolid = true;
                             for (int testX = x; testX < endX; testX++)
                             {
-                                if (level.GetGeoCell(new(testX, endY), layer).terrain != GeoType.Solid
+                                if (GetRenderTerrain(level, testX, endY, layer) != GeoType.Solid
                                     || hit[testX - xMin + (endY - yMin) * w])
                                 {
                                     rowSolid = false;
@@ -125,7 +133,7 @@ public class GeoViewChunk : MonoBehaviour
                         // Find line of platforms rightwards
                         endX = x;
                         while (endX < xMin + w
-                            && level.GetGeoCell(new(endX, y), layer).terrain == GeoType.Platform
+                            && GetRenderTerrain(level, endX, y, layer) == GeoType.Platform
                             && !hit[endX - xMin + (y - yMin) * w])
                         {
                             endX++;
@@ -206,6 +214,15 @@ public class GeoViewChunk : MonoBehaviour
         mesh.SetIndices(indices, MeshTopology.Triangles, 0);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static GeoType GetRenderTerrain(LevelData level, int x, int y, int layer)
+    {
+        if (level.GetVisualCell(new(x, y), layer) is TileInstance)
+            return GeoType.Air;
+        else
+            return level.GetGeoCell(new(x, y), layer).terrain;
+    }
+
     private void RefreshTiles()
     {
         int xMin = LevelRect.xMin;
@@ -250,31 +267,6 @@ public class GeoViewChunk : MonoBehaviour
                 _tiles.Remove(inst);
             }
         }
-    }
-
-    private static Texture2D GetGeoTexture(LevelData level, int x, int y, int w, int h, int layer)
-    {
-        var tex = new Texture2D(w, h, TextureFormat.RGBA32, false, false, true)
-        {
-            filterMode = FilterMode.Point
-        };
-        var data = new Color32[w * h];
-
-        var mat = new Color32(0, 255, 0, 255);
-        var tile = new Color32(0, 255, 0, 0);
-
-        int i = 0;
-        for (int ty = y + h - 1; ty >= y; ty--)
-        {
-            for (int tx = x; tx < x + w; tx++)
-            {
-                data[i++] = level.GetVisualCell(new(tx, ty), layer) is TileInstance ? tile : mat;
-            }
-        }
-
-        tex.SetPixelData(data, 0);
-        tex.Apply(false, true);
-        return tex;
     }
 
     private static void AddQuad(List<Vector3> verts, List<int> inds, float x, float y, float w, float h)

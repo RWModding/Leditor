@@ -60,6 +60,7 @@ Shader "Custom/RemapRGB"
             fixed4 frag (v2f i) : SV_Target
             {
                 fixed4 col = tex2D(_MainTex, i.uv);
+                col.rgb = step(0.5, col.rgb);
                 return mul(col, float4x4(_ColorR, _ColorG, _ColorB, _ColorA)) * i.color;
             }
             ENDCG
