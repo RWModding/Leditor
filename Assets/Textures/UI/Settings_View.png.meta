@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 839eeeb31613890469509468026ab2c0
+guid: 8a0848159f74ed74786bd71c8799f14c
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -6147029251019441016
-    second: L2_0
+      213: -820565791325705415
+    second: Settings_View_0
   externalObjects: {}
   serializedVersion: 12
   mipmaps:
@@ -49,10 +49,10 @@ TextureImporter:
   spriteMode: 1
   spriteExtrude: 1
   spriteMeshType: 0
-  alignment: 1
+  alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 1
-  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 8, y: 8, z: 8, w: 8}
   spriteGenerateFallbackPhysicsShape: 0
   alphaUsage: 1
   alphaIsTransparency: 1
@@ -98,22 +98,22 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: L2_0
+      name: Button_Down_0
       rect:
         serializedVersion: 2
-        x: 1
+        x: 0
         y: 0
-        width: 16
-        height: 10
+        width: 24
+        height: 24
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 88cfc0de67d51baa0800000000000000
-      internalID: -6147029251019441016
+      spriteID: 659b823e9033a04d0800000000000000
+      internalID: -3167663270342903466
       vertices: []
       indices: 
       edges: []
@@ -122,14 +122,14 @@ TextureImporter:
     physicsShape: []
     bones: []
     spriteID: 5e97eb03825dee720800000000000000
-    internalID: 0
+    internalID: 1537655665
     vertices: []
     indices: 
     edges: []
     weights: []
     secondaryTextures: []
     nameFileIdTable:
-      L2_0: -6147029251019441016
+      Button_Down_0: -3167663270342903466
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -10,10 +10,13 @@ public class GeoView : MonoBehaviour
 {
     public Material LayerMaterial;
     public Material GeoMaterial;
+    public ViewMode Mode;
 
     private LevelLoader _loader;
     private Camera[] _layerCameras;
     private Transform _chunkParent;
+    private ViewMode _lastMode;
+    private MeshRenderer[] _layerRenderers;
 
     void Awake()
     {
@@ -27,6 +30,7 @@ public class GeoView : MonoBehaviour
 
         // Set up cameras and layer sprites
         _layerCameras = new Camera[3];
+        _layerRenderers = new MeshRenderer[3];
         for (int i = 0; i < 3; i++)
         {
             var camObj = new GameObject($"Layer {i + 1} Camera");
@@ -49,43 +53,68 @@ public class GeoView : MonoBehaviour
             imageObj.name = $"Layer {i + 1} Image";
             ren.material = LayerMaterial;
             ren.material.mainTexture = cam.targetTexture;
-            ren.sortingOrder = i - 3;
             imageObj.transform.parent = mergedLayers.transform;
             imageObj.transform.localPosition = new Vector3(0f, 0f, i);
 
-            var color = i switch
+            _layerRenderers[i] = ren;
+        }
+
+        ApplyViewMode();
+    }
+
+    private void ApplyViewMode()
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            var ren = _layerRenderers[i];
+
+            if (Mode == ViewMode.Tiled)
             {
-                0 => Color.black,
-                1 => new Color(0.5f, 0.1f, 0.9f, 0.5f),
-                _ => new Color(0.9f, 0.9f, 0.4f, 0.3f),
-            };
+                var color = i switch
+                {
+                    0 => Color.white,
+                    1 => new Color(0.75f, 0.55f, 0.95f),
+                    _ => new Color(0.95f, 0.95f, 0.6f),
+                };
 
-            //Color.RGBToHSV(color, out float h, out float s, out float v);
-            //ren.material.SetColor("_ColorR", FromHSV(h, s, Mathf.Max(v - 0.5f, 0f)));
-            //ren.material.SetColor("_ColorG", FromHSV(h, s, v));
-            //ren.material.SetColor("_ColorB", FromHSV(h, s, Mathf.Min(v + 0.5f, 1f)));
-            //ren.material.color = new Color(1f, 1f, 1f, color.a);
-            ren.material.SetColor("_ColorR", new Color(1f, 1f, 1f, 0f));
-            ren.material.SetColor("_ColorG", new Color(1f, 1f, 1f, 0f));
-            ren.material.SetColor("_ColorB", new Color(1f, 1f, 1f, 0f));
-            ren.material.color = color;
+                ren.material.SetColor("_ColorR", new Color(0.3f, 0.3f, 0.3f, 0f));
+                ren.material.SetColor("_ColorG", new Color(0.4f, 0.4f, 0.4f, 0f));
+                ren.material.SetColor("_ColorB", new Color(0.5f, 0.5f, 0.5f, 0.1f));
+                ren.material.color = color;
+                ren.sortingOrder = 0;
+            }
+            else
+            {
+                var color = i switch
+                {
+                    0 => Color.black,
+                    1 => new Color(0.5f, 0.1f, 0.9f, 0.5f),
+                    _ => new Color(0.9f, 0.9f, 0.4f, 0.3f),
+                };
 
-            //static Color FromHSV(float h, float s, float v)
-            //{
-            //    var c = Color.HSVToRGB(h, s, v);
-            //    c.a = 0f;
-            //    return c;
-            //}
+                ren.material.SetColor("_ColorR", new Color(1f, 1f, 1f, 0f));
+                ren.material.SetColor("_ColorG", new Color(1f, 1f, 1f, 0f));
+                ren.material.SetColor("_ColorB", new Color(1f, 1f, 1f, 0f));
+                ren.material.color = color;
+                ren.sortingOrder = i - 3;
+            }
+        }
+    }
+
+    void Update()
+    {
+        if(Mode != _lastMode)
+        {
+            _lastMode = Mode;
+
+            ResetChunks();
+            ApplyViewMode();
         }
     }
 
     public void OnLevelLoaded()
     {
-        Clear();
-        AddChunks();
-
-        RectInt? fullRect = new RectInt(0, 0, _loader.LevelData.Width, _loader.LevelData.Height);
-        Refresh(Enumerable.Repeat(fullRect, 4).ToArray());
+        ResetChunks();
     }
 
     public void OnLevelViewRefreshed(RectInt?[] rects)
@@ -102,9 +131,12 @@ public class GeoView : MonoBehaviour
         }
     }
 
-    private void AddChunks()
+    private void ResetChunks()
     {
+        Clear();
+
         var level = _loader.LevelData;
+        if (level == null) return;
 
         if (!_chunkParent)
         {
@@ -131,6 +163,9 @@ public class GeoView : MonoBehaviour
                 }
             }
         }
+
+        RectInt? fullRect = new RectInt(0, 0, _loader.LevelData.Width, _loader.LevelData.Height);
+        Refresh(Enumerable.Repeat(fullRect, 4).ToArray());
     }
 
     private void Refresh(RectInt?[] rects)
@@ -213,5 +248,12 @@ public class GeoView : MonoBehaviour
         filter.sharedMesh = mesh;
 
         return obj;
+    }
+
+    public enum ViewMode
+    {
+        GeoOnly,
+        GeoAndTiles,
+        Tiled
     }
 }

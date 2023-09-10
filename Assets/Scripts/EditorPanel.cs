@@ -14,5 +14,7 @@ public class EditorPanel : MonoBehaviour
         {
             view.gameObject.SetActive(!view.gameObject.activeSelf);
         }
+
+        ToggleButton.localEulerAngles = new Vector3(0f, 0f, view.gameObject.activeSelf ? 0f : -90f);
     }
 }

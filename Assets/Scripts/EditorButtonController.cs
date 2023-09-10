@@ -13,12 +13,16 @@ public class EditorButtonController : MonoBehaviour
 
     public void SwitchEditor(GameObject editor)
     {
+        bool setActive = editor != null && !editor.activeSelf;
+
         foreach(Transform oldEditor in EditorParent)
         {
             oldEditor.gameObject.SetActive(false);
         }
 
-        if(editor != null)
+        if (setActive)
             editor.SetActive(true);
+        else
+            EditorParent.GetChild(0).gameObject.SetActive(true);
     }
 }

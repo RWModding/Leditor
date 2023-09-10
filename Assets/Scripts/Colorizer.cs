@@ -35,11 +35,11 @@ public class Colorizer : MonoBehaviour
         Color color = _color switch
         {
             PaletteColor.Background => new Color(0.95f, 0.95f, 0.95f),
-            PaletteColor.Panel => new Color(0.97f, 0.99f, 1f, 0.8f),
+            PaletteColor.Panel => new Color(0.97f, 0.99f, 1f),
             PaletteColor.PanelHeader => new Color(0.79f, 0.86f, 0.89f),
             PaletteColor.Text => new Color(0.16f, 0.16f, 0.16f),
-            PaletteColor.SubPanel => new Color(0.4f, 0.4f, 0.4f, 0.3f),
-            PaletteColor.SubPanelSelected => new Color(0.7f, 0.6f, 0.45f, 0.7f),
+            PaletteColor.SubPanel => new Color(0.8f, 0.8f, 0.85f),
+            PaletteColor.SubPanelSelected => new Color(0.9f, 0.8f, 0.65f),
             _ => UnityEngine.Color.red
         };
 
