@@ -18,12 +18,17 @@ public class PointerInput : MonoBehaviour,
     private Texture2D _cursorOverride;
     private Vector2 _cursorHotspot;
     private bool _pointerOver;
+    private LevelLoader _loader;
 
-    private Tool CurrentTool => Tools ? Tools.CurrentTool : null;
+    private Tool CurrentTool => Tools && _loader && _loader.LevelData != null ? Tools.CurrentTool : null;
 
     void Awake()
     {
         _cam = CameraController.GetComponent<Camera>();
+        if (Tools)
+        {
+            _loader = Tools.GetComponentInParent<LevelLoader>();
+        }
     }
 
     private void Update()

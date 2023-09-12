@@ -22,33 +22,24 @@ public class LevelGrid : MonoBehaviour
             GetComponent<MeshFilter>().sharedMesh = _mesh;
         }
 
-        Vector3[] verts = new Vector3[xDivs * 4 + yDivs * 4];
-        Vector2[] uvs = new Vector2[verts.Length];
-        int[] inds = new int[xDivs * 4 + yDivs * 4];
+        Vector3[] verts = new Vector3[xDivs * 2 + yDivs * 2];
+        int[] inds = new int[xDivs * 2 + yDivs * 2];
 
-        // Make a quad per horizontal line
+        // Make a vert pair per horizontal line
         int i = 0;
         for(int x = 0; x < xDivs; x++)
         {
-            verts[i + 0] = verts[i + 1] = new Vector2(x, 0f);
-            verts[i + 2] = verts[i + 3] = new Vector2(x, 1 - yDivs);
-            uvs[i + 0] = new Vector2(-1f, 0f);
-            uvs[i + 1] = new Vector2(1f, 0f);
-            uvs[i + 2] = new Vector2(-1f, 0f);
-            uvs[i + 3] = new Vector2(1f, 0f);
-            i += 4;
+            verts[i + 0] = new Vector2(x, 0f);
+            verts[i + 1] = new Vector2(x, 1 - yDivs);
+            i += 2;
         }
 
         // Do the same for vertical lines
         for(int y = 0; y < yDivs; y++)
         {
-            verts[i + 0] = verts[i + 1] = new Vector2(xDivs - 1, -y);
-            verts[i + 2] = verts[i + 3] = new Vector2(0f, -y);
-            uvs[i + 0] = new Vector2(0f, -1f);
-            uvs[i + 1] = new Vector2(0f, 1f);
-            uvs[i + 2] = new Vector2(0f, -1f);
-            uvs[i + 3] = new Vector2(0f, 1f);
-            i += 4;
+            verts[i + 0] = new Vector2(xDivs - 1, -y);
+            verts[i + 1] = new Vector2(0f, -y);
+            i += 2;
         }
 
         // Make indices
@@ -59,7 +50,6 @@ public class LevelGrid : MonoBehaviour
 
         _mesh.Clear();
         _mesh.SetVertices(verts);
-        _mesh.SetUVs(0, uvs);
-        _mesh.SetIndices(inds, MeshTopology.Quads, 0);
+        _mesh.SetIndices(inds, MeshTopology.Lines, 0);
     }
 }

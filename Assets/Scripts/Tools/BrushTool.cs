@@ -66,7 +66,7 @@ public abstract class BrushTool : Tool
 
     private void ApplyBrush(MouseData mouse)
     {
-        if (Level == null || mouse.EventData.button != PointerEventData.InputButton.Left)
+        if (mouse.EventData.button != PointerEventData.InputButton.Left)
             return;
 
         var pos = mouse.LevelPos + BrushOffset;

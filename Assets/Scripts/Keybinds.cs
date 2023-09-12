@@ -22,6 +22,8 @@ public class Keybinds : MonoBehaviour
         new("Brush Shrink", "Shrink Brush", KeyCode.LeftBracket),
         new("Brush Grow", "Grow Brush", KeyCode.RightBracket),
 
+        new("Slope Create", "Create Slope", KeyCode.Mouse0) { MouseOnly = true },
+
         new("Change Layer", "Change Layer", KeyCode.L),
     };
 

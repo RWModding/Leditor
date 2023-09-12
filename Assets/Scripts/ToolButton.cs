@@ -1,10 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class ToolButton : MonoBehaviour
 {
     public Tool Tool;
+    public CanvasGroup NameLabel;
     private Colorizer _colorizer;
 
     public bool Selected => Tool && Tool.isActiveAndEnabled;

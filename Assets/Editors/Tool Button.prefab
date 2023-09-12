@@ -258,6 +258,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Tool: {fileID: 0}
+  NameLabel: {fileID: 1596053419340792342}
 --- !u!114 &329699177511728427
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -327,6 +328,7 @@ GameObject:
   - component: {fileID: 8144516107142183201}
   - component: {fileID: 4627984946163974235}
   - component: {fileID: 5637119648716901257}
+  - component: {fileID: 1596053419340792342}
   m_Layer: 5
   m_Name: Label
   m_TagString: Untagged
@@ -420,6 +422,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_ShowMaskGraphic: 1
+--- !u!225 &1596053419340792342
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5968365024169742826}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &7551016695829399824
 GameObject:
   m_ObjectHideFlags: 0

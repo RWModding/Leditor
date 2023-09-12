@@ -21,7 +21,6 @@ Shader "Unlit/LevelGrid"
             struct appdata
             {
                 float4 vertex : POSITION;
-                float2 uv : TEXCOORD0;
             };
 
             struct v2f
@@ -34,8 +33,7 @@ Shader "Unlit/LevelGrid"
             {
                 v2f o;
                 o.vertex = UnityObjectToClipPos(v.vertex);
-                o.vertex.xy = (round(o.vertex.xy * 0.5 * _ScreenParams.xy + float2(0.5, 0.0)) + v.uv * 0.5) / _ScreenParams.xy * 2.0;
-                o.color = fixed4(0.2, 0.2, 0.2, 0.1);
+                o.color = fixed4(0.2, 0.2, 0.2, 0.2);
                 return o;
             }
 
