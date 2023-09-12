@@ -73,6 +73,23 @@ public static class BrushUtils
         mesh.SetIndices(inds, MeshTopology.Lines, 0);
     }
 
+    public static void UpdateRectMesh(Mesh mesh, int width, int height)
+    {
+        mesh.Clear();
+
+        var verts = new Vector3[]
+        {
+            new Vector3(0f, 0f),
+            new Vector3(width, 0f),
+            new Vector3(width, -height),
+            new Vector3(0f, -height)
+        };
+        var inds = new int[] { 0, 1, 2, 3, 0 };
+
+        mesh.SetVertices(verts);
+        mesh.SetIndices(inds, MeshTopology.LineStrip, 0);
+    }
+
     public static bool CircleContains(int x, int y, int diameter)
     {
         int d2x = x * 2 + 1 - diameter;
