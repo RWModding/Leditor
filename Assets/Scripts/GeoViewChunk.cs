@@ -12,6 +12,7 @@ public class GeoViewChunk : MonoBehaviour
     public int Layer;
     public LevelData Level;
     public Material GeoMaterial;
+    public bool ShowTiles;
 
     private Mesh _geoMesh;
     private Dictionary<TileInstance, SpriteRenderer> _tiles = new();
@@ -70,6 +71,7 @@ public class GeoViewChunk : MonoBehaviour
         int layer = Layer;
         var level = Level;
         var mesh = _geoMesh;
+        var showTiles = ShowTiles;
 
         var vertices = new List<Vector3>();
         var indices = new List<int>();
@@ -87,13 +89,13 @@ public class GeoViewChunk : MonoBehaviour
             {
                 if (hit[x - xMin + (y - yMin) * w]) continue;
 
-                switch (GetRenderTerrain(level, x, y, layer))
+                switch (GetRenderTerrain(level, x, y, layer, showTiles))
                 {
                     case GeoType.Solid:
                         // Find line of terrain rightwards
                         int endX = x;
                         while (endX < xMin + w
-                            && GetRenderTerrain(level, endX, y, layer) == GeoType.Solid
+                            && GetRenderTerrain(level, endX, y, layer, showTiles) == GeoType.Solid
                             && !hit[endX - xMin + (y - yMin) * w])
                         {
                             endX++;
@@ -106,7 +108,7 @@ public class GeoViewChunk : MonoBehaviour
                             bool rowSolid = true;
                             for (int testX = x; testX < endX; testX++)
                             {
-                                if (GetRenderTerrain(level, testX, endY, layer) != GeoType.Solid
+                                if (GetRenderTerrain(level, testX, endY, layer, showTiles) != GeoType.Solid
                                     || hit[testX - xMin + (endY - yMin) * w])
                                 {
                                     rowSolid = false;
@@ -133,7 +135,7 @@ public class GeoViewChunk : MonoBehaviour
                         // Find line of platforms rightwards
                         endX = x;
                         while (endX < xMin + w
-                            && GetRenderTerrain(level, endX, y, layer) == GeoType.Platform
+                            && GetRenderTerrain(level, endX, y, layer, showTiles) == GeoType.Platform
                             && !hit[endX - xMin + (y - yMin) * w])
                         {
                             endX++;
@@ -215,9 +217,9 @@ public class GeoViewChunk : MonoBehaviour
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static GeoType GetRenderTerrain(LevelData level, int x, int y, int layer)
+    private static GeoType GetRenderTerrain(LevelData level, int x, int y, int layer, bool showTiles)
     {
-        if (level.GetVisualCell(new(x, y), layer) is TileInstance)
+        if (level.GetVisualCell(new(x, y), layer) is TileInstance && showTiles)
             return GeoType.Air;
         else
             return level.GetGeoCell(new(x, y), layer).terrain;
@@ -236,25 +238,28 @@ public class GeoViewChunk : MonoBehaviour
         var oldTiles = _tiles.Keys.ToHashSet();
 
         // Add or update sprites for the current tiles
-        foreach (var inst in level.Tiles)
+        if (ShowTiles)
         {
-            if (inst.HeadLayer == layer
-                && inst.HeadPos.x >= xMin && inst.HeadPos.y >= yMin
-                && inst.HeadPos.x < xMax && inst.HeadPos.y < yMax)
+            foreach (var inst in level.Tiles)
             {
-                if (!_tiles.TryGetValue(inst, out SpriteRenderer spriteRenderer) || !spriteRenderer)
+                if (inst.HeadLayer == layer
+                    && inst.HeadPos.x >= xMin && inst.HeadPos.y >= yMin
+                    && inst.HeadPos.x < xMax && inst.HeadPos.y < yMax)
                 {
-                    var tileObj = new GameObject(inst.Tile.Name);
-                    tileObj.transform.parent = transform;
-                    tileObj.layer = gameObject.layer;
-                    spriteRenderer = tileObj.AddComponent<SpriteRenderer>();
-                    _tiles[inst] = spriteRenderer;
+                    if (!_tiles.TryGetValue(inst, out SpriteRenderer spriteRenderer) || !spriteRenderer)
+                    {
+                        var tileObj = new GameObject(inst.Tile.Name);
+                        tileObj.transform.parent = transform;
+                        tileObj.layer = gameObject.layer;
+                        spriteRenderer = tileObj.AddComponent<SpriteRenderer>();
+                        _tiles[inst] = spriteRenderer;
+                    }
+
+                    spriteRenderer.transform.localPosition = new Vector3(inst.TopLeft.x, -inst.TopLeft.y, -0.1f);
+                    spriteRenderer.sprite = inst.Tile.GetRenderSprite(layer - inst.HeadLayer);
+
+                    oldTiles.Remove(inst);
                 }
-
-                spriteRenderer.transform.localPosition = new Vector3(inst.TopLeft.x, -inst.TopLeft.y, -0.1f);
-                spriteRenderer.sprite = inst.Tile.GetRenderSprite(layer - inst.HeadLayer);
-
-                oldTiles.Remove(inst);
             }
         }
 

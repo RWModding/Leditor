@@ -160,6 +160,7 @@ public class GeoView : MonoBehaviour
                     chunk.Layer = layer;
                     chunk.Level = level;
                     chunk.GeoMaterial = GeoMaterial;
+                    chunk.ShowTiles = Mode != ViewMode.GeoOnly;
                 }
             }
         }

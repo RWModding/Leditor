@@ -6,34 +6,52 @@ using UnityEngine.EventSystems;
 public class PointerInput : MonoBehaviour,
     IBeginDragHandler, IDragHandler, IEndDragHandler,
     IScrollHandler,
-    IPointerDownHandler, IPointerUpHandler, IPointerClickHandler
+    IPointerDownHandler, IPointerUpHandler, IPointerClickHandler,
+    IPointerEnterHandler,
+    IPointerExitHandler
 {
     public CameraController CameraController;
-    public Transform EditorParent;
+    public ToolGroup Tools;
     private Camera _cam;
     private Vector2 _dragOrigin;
-    private EditorBase _currentEditor;
+
+    private Texture2D _cursorOverride;
+    private Vector2 _cursorHotspot;
+    private bool _pointerOver;
+
+    private Tool CurrentTool => Tools ? Tools.CurrentTool : null;
 
     void Awake()
     {
         _cam = CameraController.GetComponent<Camera>();
     }
 
-    void Update()
+    private void Update()
     {
-        if(EditorParent != null && (_currentEditor == null || !_currentEditor.gameObject.activeInHierarchy))
+        if (_pointerOver)
         {
-            _currentEditor = null;
+            var newOverride = CurrentTool ? CurrentTool.CursorOverride : null;
+            var newHotspot = CurrentTool ? CurrentTool.CursorHotspot : Vector2.zero;
 
-            foreach(Transform child in EditorParent)
+            if (_cursorOverride != newOverride || newOverride && _cursorHotspot != newHotspot)
             {
-                if(child.gameObject.activeInHierarchy && child.TryGetComponent(out EditorBase newEditor))
-                {
-                    _currentEditor = newEditor;
-                    break;
-                }
+                Cursor.SetCursor(newOverride, newHotspot, CursorMode.Auto);
+                _cursorOverride = newOverride;
+                _cursorHotspot = newHotspot;
             }
         }
+    }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        _pointerOver = true;
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        Cursor.SetCursor(null, default, CursorMode.Auto);
+        _cursorOverride = null;
+        _pointerOver = false;
     }
 
     public void OnBeginDrag(PointerEventData eventData)
@@ -44,8 +62,8 @@ public class PointerInput : MonoBehaviour,
         }
         else
         {
-            if (_currentEditor != null)
-                _currentEditor.OnBeginDrag(eventData);
+            if (CurrentTool)
+                CurrentTool.OnBeginDrag(eventData);
         }
     }
 
@@ -61,40 +79,43 @@ public class PointerInput : MonoBehaviour,
         }
         else
         {
-            if (_currentEditor != null)
-                _currentEditor.OnDrag(eventData);
+            if (CurrentTool)
+                CurrentTool.OnDrag(eventData);
         }
     }
 
     public void OnScroll(PointerEventData eventData)
     {
-        CameraController.Zoom(-(int)eventData.scrollDelta.y);
+        if (Keybinds.Shift)
+            BrushUtils.Resize((int)eventData.scrollDelta.y);
+        else
+            CameraController.Zoom(-(int)eventData.scrollDelta.y);
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        if (_currentEditor != null)
-            _currentEditor.OnEndDrag(eventData);
+        if (CurrentTool)
+            CurrentTool.OnEndDrag(eventData);
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
         if (eventData.button != PointerEventData.InputButton.Middle)
         {
-            if (_currentEditor != null)
-                _currentEditor.OnPointerClick(eventData);
+            if (CurrentTool)
+                CurrentTool.OnPointerClick(eventData);
         }
     }
 
     public void OnPointerUp(PointerEventData eventData)
     {
-        if (_currentEditor != null)
-            _currentEditor.OnPointerUp(eventData);
+        if (CurrentTool)
+            CurrentTool.OnPointerUp(eventData);
     }
 
     public void OnPointerDown(PointerEventData eventData)
     {
-        if (_currentEditor != null)
-            _currentEditor.OnPointerDown(eventData);
+        if (CurrentTool)
+            CurrentTool.OnPointerDown(eventData);
     }
 }

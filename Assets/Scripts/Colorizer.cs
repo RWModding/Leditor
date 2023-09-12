@@ -20,6 +20,8 @@ public class Colorizer : MonoBehaviour
     [SerializeField]
     private PaletteColor _color;
 
+    public bool PreserveAlpha;
+
     private void Start()
     {
         Apply();
@@ -30,9 +32,9 @@ public class Colorizer : MonoBehaviour
         Apply();
     }
 
-    private void Apply()
+    public static Color GetColor(PaletteColor slot)
     {
-        Color color = _color switch
+        return slot switch
         {
             PaletteColor.Background => new Color(0.95f, 0.95f, 0.95f),
             PaletteColor.Panel => new Color(0.97f, 0.99f, 1f),
@@ -40,17 +42,32 @@ public class Colorizer : MonoBehaviour
             PaletteColor.Text => new Color(0.16f, 0.16f, 0.16f),
             PaletteColor.SubPanel => new Color(0.8f, 0.8f, 0.85f),
             PaletteColor.SubPanelSelected => new Color(0.9f, 0.8f, 0.65f),
+            PaletteColor.HeaderSubPanel => new Color(0.59f, 0.64f, 0.66f),
+            PaletteColor.HeaderSubPanelSelected => new Color(0.83f, 0.72f, 0.42f),
             _ => UnityEngine.Color.red
         };
+}
+
+    private void Apply()
+    {
+        Color color = GetColor(_color);
 
         if(TryGetComponent(out Camera cam))
             cam.backgroundColor = new Color(color.r, color.g, color.b, 0f);
 
         if (TryGetComponent(out Image img))
+        {
+            if (PreserveAlpha)
+                color.a = img.color.a;
             img.color = color;
+        }
 
         if (TryGetComponent(out TextMeshProUGUI text))
+        {
+            if (PreserveAlpha)
+                color.a = text.color.a;
             text.color = color;
+        }
     }
 
     public enum PaletteColor
@@ -60,6 +77,8 @@ public class Colorizer : MonoBehaviour
         PanelHeader,
         Text,
         SubPanel,
-        SubPanelSelected
+        SubPanelSelected,
+        HeaderSubPanel,
+        HeaderSubPanelSelected
     }
 }
